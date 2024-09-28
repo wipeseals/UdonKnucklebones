@@ -213,12 +213,6 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2"
       }
     },
-    "com.wipeseals.udon-knucklebones": {
-      "version": "file:com.wipeseals.udon-knucklebones",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {}
-    },
     "com.vrchat.worlds": {
       "version": "file:com.vrchat.worlds",
       "depth": 0,
@@ -230,6 +224,12 @@
         "com.unity.ai.navigation": "1.1.5",
         "com.unity.ugui": "1.0.0"
       }
+    },
+    "com.wipeseals.udon-knucklebones": {
+      "version": "file:com.wipeseals.udon-knucklebones",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",

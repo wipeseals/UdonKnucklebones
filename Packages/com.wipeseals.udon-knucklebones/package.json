@@ -1,13 +1,16 @@
 {
-  "name": "com.vrchat.demo-template",
-  "displayName": "VRChat Example Package",
-  "version": "0.0.6",
-  "unity": "2019.4",
-  "description": "Simple Package for testing Automation",
-  "vrchatVersion": "2022.1.1",
+  "name": "com.wipeseals.udon-knucklebones",
+  "displayName": "Udon Knucklebones",
+  "version": "0.0.1",
   "author": {
-    "name": "Momo the Monster",
-    "email": "momodmonster@gmail.com",
-    "url": "https://mmmlabs.com"
+    "name": "wipeseals",
+    "email": "wipeseals@gmail.com",
+    "url": "https://wipeseals.me"
+  },
+  "unity": "2022.3",
+  "description": "Knucklebones playground for Udon",
+  "vpmDependencies": {
+    "com.vrchat.base": "3.7.1",
+    "com.vrchat.worlds": "3.7.1"
   }
 }
