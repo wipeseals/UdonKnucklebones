@@ -213,8 +213,8 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2"
       }
     },
-    "com.vrchat.demo-template": {
-      "version": "file:com.vrchat.demo-template",
+    "com.wipeseals.udon-knucklebones": {
+      "version": "file:com.wipeseals.udon-knucklebones",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}
