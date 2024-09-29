@@ -5,6 +5,9 @@
     },
     "com.vrchat.worlds": {
       "version": "3.7.1"
+    },
+    "dev.onevr.vrworldtoolkit": {
+      "version": "3.2.0"
     }
   },
   "locked": {
@@ -17,6 +20,10 @@
       "dependencies": {
         "com.vrchat.base": "3.7.1"
       }
+    },
+    "dev.onevr.vrworldtoolkit": {
+      "version": "3.2.0",
+      "dependencies": {}
     }
   }
 }
