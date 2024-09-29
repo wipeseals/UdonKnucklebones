@@ -3,7 +3,27 @@ guid: d3a600a93cfea8e499297e390701da4c
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DiceAccent
+    second: {fileID: 2100000, guid: d7fa91b34a68e4445835c70b9f1543c3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DiceBase
+    second: {fileID: 2100000, guid: d7fa91b34a68e4445835c70b9f1543c3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Marble Black 001_1k.004
+    second: {fileID: 2100000, guid: 188bff7d3e4df7844bf050249f1d80a4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Marble White 001_1k
+    second: {fileID: 2100000, guid: 4ebffbd0e5b9b4d4eb3036e8f3d4a702, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
