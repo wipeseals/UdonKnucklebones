@@ -3862,10 +3862,46 @@ MonoBehaviour:
     Prefab: {fileID: 0}
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
-    SerializationNodes: []
+    SerializationNodes:
+    - Name: NUM_COLUMNS
+      Entry: 3
+      Data: 3
+    - Name: NUM_ROWS
+      Entry: 3
+      Data: 3
   _udonSharpBackingUdonBehaviour: {fileID: 1132024059}
-  isDebug: 1
-  dice: {fileID: 0}
+  IsDebug: 1
+  Dice: {fileID: 709215488}
+  Player1Col1DiceArray:
+  - {fileID: 1676321875}
+  - {fileID: 373787183}
+  - {fileID: 1151187826}
+  Player1Col2DiceArray:
+  - {fileID: 1016629492}
+  - {fileID: 212397729}
+  - {fileID: 117339330}
+  Player1Col3DiceArray:
+  - {fileID: 71342450}
+  - {fileID: 1352837479}
+  - {fileID: 2054298243}
+  Player2Col1DiceArray:
+  - {fileID: 1164368816}
+  - {fileID: 1216988028}
+  - {fileID: 13151342}
+  Player2Col2DiceArray:
+  - {fileID: 1994018475}
+  - {fileID: 1937753016}
+  - {fileID: 427437675}
+  Player2Col3DiceArray:
+  - {fileID: 2006988952}
+  - {fileID: 1350220629}
+  - {fileID: 1780488675}
+  Player1ColumnScoreTexts: []
+  Player2ColumnScoreTexts: []
+  Player1MainScoreText: {fileID: 0}
+  Player2MainScoreText: {fileID: 0}
+  TurnText: {fileID: 0}
+  SystemText: {fileID: 0}
 --- !u!1 &1151187826 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7417802152416222445, guid: 86edf83cae6f79543a340cbd8e415192,
