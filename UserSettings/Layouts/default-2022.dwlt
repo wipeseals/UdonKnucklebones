@@ -813,7 +813,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Packages/com.wipeseals.udon-knucklebones/Runtime/Udon
+    - Packages/me.wipeseals.udon-knucklebones/Runtime/Udon
     m_Globs: []
     m_OriginalText: 
     m_ImportLogFlags: 0
@@ -821,7 +821,7 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 96
   m_LastFolders:
-  - Packages/com.wipeseals.udon-knucklebones/Runtime/Udon
+  - Packages/me.wipeseals.udon-knucklebones/Runtime/Udon
   m_LastFoldersGridSize: 96
   m_LastProjectPath: E:\repos\UdonKnucklebones
   m_LockTracker:

@@ -225,12 +225,6 @@
         "com.unity.ugui": "1.0.0"
       }
     },
-    "com.wipeseals.udon-knucklebones": {
-      "version": "file:com.wipeseals.udon-knucklebones",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {}
-    },
     "dev.onevr.vrworldtoolkit": {
       "version": "file:dev.onevr.vrworldtoolkit",
       "depth": 0,
@@ -238,6 +232,12 @@
       "dependencies": {
         "com.unity.postprocessing": "3.1.1"
       }
+    },
+    "me.wipeseals.udon-knucklebones": {
+      "version": "file:com.wipeseals.udon-knucklebones",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",
