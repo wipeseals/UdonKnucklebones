@@ -619,7 +619,7 @@ GameObject:
   - component: {fileID: 110026929}
   - component: {fileID: 110026928}
   m_Layer: 0
-  m_Name: Credit
+  m_Name: CreditText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2587,7 +2587,7 @@ GameObject:
   - component: {fileID: 754414278}
   - component: {fileID: 754414277}
   m_Layer: 0
-  m_Name: TurnLabel
+  m_Name: TurnText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2840,7 +2840,7 @@ GameObject:
   - component: {fileID: 801308938}
   - component: {fileID: 801308937}
   m_Layer: 0
-  m_Name: Player2Label
+  m_Name: Player2ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3896,12 +3896,18 @@ MonoBehaviour:
   - {fileID: 2006988952}
   - {fileID: 1350220629}
   - {fileID: 1780488675}
-  Player1ColumnScoreTexts: []
-  Player2ColumnScoreTexts: []
-  Player1MainScoreText: {fileID: 0}
-  Player2MainScoreText: {fileID: 0}
-  TurnText: {fileID: 0}
-  SystemText: {fileID: 0}
+  Player1ColumnScoreTexts:
+  - {fileID: 914180967}
+  - {fileID: 1779316965}
+  - {fileID: 1383128659}
+  Player2ColumnScoreTexts:
+  - {fileID: 1216166679}
+  - {fileID: 323229883}
+  - {fileID: 2060781527}
+  Player1MainScoreText: {fileID: 1473219238}
+  Player2MainScoreText: {fileID: 801308937}
+  TurnText: {fileID: 754414277}
+  SystemText: {fileID: 218481913}
 --- !u!1 &1151187826 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7417802152416222445, guid: 86edf83cae6f79543a340cbd8e415192,
@@ -5329,7 +5335,7 @@ GameObject:
   - component: {fileID: 1463065852}
   - component: {fileID: 1463065851}
   m_Layer: 0
-  m_Name: Title
+  m_Name: TitleText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5584,7 +5590,7 @@ GameObject:
   - component: {fileID: 1473219239}
   - component: {fileID: 1473219238}
   m_Layer: 0
-  m_Name: Player1Label
+  m_Name: Player1ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7571,7 +7577,7 @@ GameObject:
   - component: {fileID: 2042396261}
   - component: {fileID: 2042396260}
   m_Layer: 0
-  m_Name: SubTitle
+  m_Name: SubTitleText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

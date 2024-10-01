@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using VRC.SDKBase;
 using VRC.Udon;
+using TMPro;
 [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
 public class UdonKnucklebones : UdonSharpBehaviour
 {
@@ -47,22 +48,22 @@ public class UdonKnucklebones : UdonSharpBehaviour
     public GameObject[] Player2Col3DiceArray = null;
 
     [SerializeField, Tooltip("Score text for player 1")]
-    public Text[] Player1ColumnScoreTexts = null;
+    public TextMeshProUGUI[] Player1ColumnScoreTexts = null;
 
     [SerializeField, Tooltip("Score text for player 2")]
-    public Text[] Player2ColumnScoreTexts = null;
+    public TextMeshProUGUI[] Player2ColumnScoreTexts = null;
 
     [SerializeField, Tooltip("Main score text for player 1")]
-    public Text Player1MainScoreText = null;
+    public TextMeshProUGUI Player1MainScoreText = null;
 
     [SerializeField, Tooltip("Main score text for player 2")]
-    public Text Player2MainScoreText = null;
+    public TextMeshProUGUI Player2MainScoreText = null;
 
     [SerializeField, Tooltip("The text to display the current turn")]
-    public Text TurnText = null;
+    public TextMeshProUGUI TurnText = null;
 
     [SerializeField, Tooltip("The text to display the current system message")]
-    public Text SystemText = null;
+    public TextMeshProUGUI SystemText = null;
 
     #endregion
 
