@@ -6,8 +6,7 @@ using VRC.SDKBase;
 using VRC.Udon;
 using TMPro;
 using System;
-using System.Linq;
-using System.Collections.Generic;
+
 
 /// <summary>
 /// エラーレベル
@@ -34,44 +33,6 @@ enum GameJudge
 public class UdonKnucklebones : UdonSharpBehaviour
 {
     #region Constants
-    /// <summary>
-    /// サイコロを並べられる行数
-    /// </summary>
-    public const int NUM_COLUMNS = 3;
-    /// <summary>
-    /// サイコロを並べられる列数
-    /// </summary>
-    public const int NUM_ROWS = 3;
-
-    /// <summary>
-    /// サイコロ1個あたりのビット幅
-    /// </summary>
-    public const int DICE_BIT_WIDTH = 4; // 0~6が表現できれば良い
-
-    /// <summary>
-    /// サイコロの値取得用のBitMask
-    /// </summary>
-    /// <remarks>
-    /// 0b1111 = 0x0F = 15, 0~6の値を取得するためのマスク
-    /// DICE_BIT_WIDTHに合わせて変更する
-    /// </remarks>
-    public const ulong DICE_BIT_MASK = 0b1111;
-
-    /// <summary>
-    /// サイコロの無効地
-    /// </summary>
-    public const int INVALID_DICE_VALUE = 0;
-
-    /// <summary>
-    /// サイコロの最小値
-    /// </summary>
-    public const int MIN_DICE_VALUE = 1;
-
-    /// <summary>
-    /// サイコロの最大値
-    /// </summary>
-    public const int MAX_DICE_VALUE = 6;
-
     /// <summary>
     /// Player1
     /// </summary>
@@ -261,13 +222,13 @@ public class UdonKnucklebones : UdonSharpBehaviour
     public void OnUpdateSyncedProperties()
     {
         TurnText.text = $"Turn: {CurrentTurn:D3}";
-        for (var col = 0; col < NUM_COLUMNS; col++)
+        for (var col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
         {
-            Player1ColumnScoreTexts[col].text = $"{GetDiceArrayScoreByColumn(Player1DiceArrayBits, col):D02}";
-            Player2ColumnScoreTexts[col].text = $"{GetDiceArrayScoreByColumn(Player2DiceArrayBits, col):D02}";
+            Player1ColumnScoreTexts[col].text = $"{Player1DiceArrayBits.GetColumnScore(col):D02}";
+            Player2ColumnScoreTexts[col].text = $"{Player2DiceArrayBits.GetColumnScore(col):D02}";
         }
-        Player1MainScoreText.text = $"Player1: {GetDiceArrayTotalScore(Player1DiceArrayBits):D03} pt.";
-        Player2MainScoreText.text = $"Player2: {GetDiceArrayTotalScore(Player2DiceArrayBits):D03} pt.";
+        Player1MainScoreText.text = $"Player1: {Player1DiceArrayBits.GetTotalScore():D03} pt.";
+        Player2MainScoreText.text = $"Player2: {Player2DiceArrayBits.GetTotalScore():D03} pt.";
 
         // TODO: 参加ボタンやら勝敗やらサイコロフリのステータスやら
 
@@ -347,7 +308,7 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// <summary>
     /// プレイヤーのサイコロ配置を更新
     /// </summary>
-    void UpdateDiceArrayBits(int player, ulong bits)
+    void SetDiceArrayBits(int player, ulong bits)
     {
         if (player == PLAYER1)
         {
@@ -363,88 +324,24 @@ public class UdonKnucklebones : UdonSharpBehaviour
         }
     }
 
-    /// <summary>
-    /// プレイヤーのサイコロ配置を取得
-    /// </summary>
-    int GetDiceArrayValue(int player, int col, int row) => GetDiceArrayValue(GetDiceArrayBits(player), col, row);
-
-    /// <summary>
-    /// プレイヤーのサイコロ配置を更新
-    /// </summary>
-    void UpdateDiceValue(int player, int col, int row, int data)
+    void Put(int player, int col, int value, bool isIndexCross = true)
     {
         var srcBits = GetDiceArrayBits(player);
-        var dstBits = ApplyDiceArrayValue(srcBits, col, row, data);
-        UpdateDiceArrayBits(player, dstBits);
-    }
-
-    /// <summary>
-    /// プレイヤーのサイコロ配置を列単位で取得
-    /// </summary>
-    int[] GetDiceArrayValueByColumn(int player, int col) => GetDiceArrayValueByColumn(GetDiceArrayBits(player), col);
-
-    /// <summary>
-    /// プレイヤーのサイコロ配置を列単位で更新
-    /// </summary>
-    void UpdateDiceArrayValueByColumn(int player, int col, int[] values)
-    {
-        var srcBits = GetDiceArrayBits(player);
-        var dstBits = ApplyDiceArrayBitsByColumn(srcBits, col, values);
-        UpdateDiceArrayBits(player, dstBits);
-    }
-
-    /// <summary>
-    /// プレイヤーの列内のサイコロ数を取得
-    /// </summary>
-    int[] GetDiceArrayRefCountByColumn(int player, int col) => GetDiceArrayRefCountByColumn(GetDiceArrayValueByColumn(player, col));
-
-    /// <summary>
-    /// プレイヤーの列内のスコアを取得
-    /// </summary>
-    int GetDiceArrayScoreByColumn(int player, int col) => GetDiceArrayScoreByColumn(GetDiceArrayBits(player), col);
-
-    /// <summary>
-    /// プレイヤーの全体のスコアを取得
-    /// </summary>
-    int GetDiceArrayTotalScore(int player) => GetDiceArrayTotalScore(GetDiceArrayBits(player));
-
-    /// <summary>
-    /// プレイヤーのサイコロ配置の数を取得
-    /// </summary>
-    int GetDiceArrayCountByColumn(int player, int col) => GetDiceArrayCountByColumn(GetDiceArrayBits(player), col);
-
-    /// <summary>
-    /// プレイヤーが指定された列にサイコロを配置できるならTrueを返す
-    /// 行数分。最大3個まで配置可能
-    /// </summary>
-    bool CanPlaceDiceByColumn(int player, int col) => GetDiceArrayCountByColumn(player, col) < NUM_ROWS;
-
-    /// <summary>
-    /// プレイヤーがサイコロを配置できない場合Trueを返す
-    /// </summary>
-    bool IsNoPlaceToPutDice(int player) => IsNoPlaceToPutDice(GetDiceArrayBits(player));
-
-    /// <summary>
-    /// サイコロを配置する
-    /// </summary>
-    void PlaceDice(int player, int col, int value)
-    {
         // 指定された列の末尾に配置
-        var count = GetDiceArrayCountByColumn(player, col);
-        if (count >= NUM_ROWS)
+        var rowIndex = srcBits.GetColumnCount(col);
+        if (rowIndex >= DiceArrayBits.NUM_ROWS)
         {
             Log(ErrorLevel.Error, $"Cannot place dice to column {col}");
             return;
         }
-        UpdateDiceValue(player, col, count, value);
+        SetDiceArrayBits(player, srcBits.PutDice(col, rowIndex, value));
 
         // 相手の列に同じ値がある場合、削除する
-        // 列のindexは向かい合っているため、NUM_COLUMNS - col - 1で対向している列を取得
         var opponentPlayer = player == 0 ? 1 : 0;
-        var opponentColumn = NUM_COLUMNS - col - 1;
+        var opponentColumn = isIndexCross ? (DiceArrayBits.NUM_COLUMNS - col - 1) : col;// 列のindexは向かい合っている場合、DiceArrayBits.NUM_COLUMNS - col - 1で対向している列を取得
+
         // 相手の列から配置した値を削除
-        var opponentValues = RemoveSpecifiedDiceValueByColumn(GetDiceArrayBits(opponentPlayer), opponentColumn, value);
-        UpdateDiceArrayBits(opponentPlayer, opponentValues);
+        SetDiceArrayBits(opponentPlayer, GetDiceArrayBits(opponentPlayer).RemoveByValue(opponentColumn, value));
     }
 
     /// <summary>
@@ -453,14 +350,14 @@ public class UdonKnucklebones : UdonSharpBehaviour
     GameJudge GetGameJudge(int currentTurnPlayer)
     {
         // 現在のターンのプレイヤーが配置後、置けなくなった時点で終了
-        if (!IsNoPlaceToPutDice(currentTurnPlayer))
+        if (!GetDiceArrayBits(currentTurnPlayer).IsFull())
         {
             // まだ置ける
             return GameJudge.Continue;
         }
 
-        var player1Score = GetDiceArrayTotalScore(PLAYER1);
-        var player2Score = GetDiceArrayTotalScore(PLAYER2);
+        var player1Score = GetDiceArrayBits(PLAYER1).GetTotalScore();
+        var player2Score = GetDiceArrayBits(PLAYER2).GetTotalScore();
 
         if (player1Score > player2Score)
         {
@@ -611,54 +508,54 @@ public class UdonKnucklebones : UdonSharpBehaviour
         }
 
         // Check if all required fields in the dice arrays are set
-        if (Player1ColumnColliders.Length != NUM_COLUMNS)
+        if (Player1ColumnColliders.Length != DiceArrayBits.NUM_COLUMNS)
         {
-            msg = $"{nameof(Player1ColumnColliders)} must have {NUM_COLUMNS} elements!";
+            msg = $"{nameof(Player1ColumnColliders)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
             return false;
         }
-        if (Player2ColumnColliders.Length != NUM_COLUMNS)
+        if (Player2ColumnColliders.Length != DiceArrayBits.NUM_COLUMNS)
         {
-            msg = $"{nameof(Player2ColumnColliders)} must have {NUM_COLUMNS} elements!";
+            msg = $"{nameof(Player2ColumnColliders)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
             return false;
         }
-        if (Player1Col1DiceArray.Length != NUM_ROWS)
+        if (Player1Col1DiceArray.Length != DiceArrayBits.NUM_ROWS)
         {
-            msg = $"{nameof(Player1Col1DiceArray)} must have {NUM_ROWS} elements!";
+            msg = $"{nameof(Player1Col1DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
             return false;
         }
-        if (Player1Col2DiceArray.Length != NUM_ROWS)
+        if (Player1Col2DiceArray.Length != DiceArrayBits.NUM_ROWS)
         {
-            msg = $"{nameof(Player1Col2DiceArray)} must have {NUM_ROWS} elements!";
+            msg = $"{nameof(Player1Col2DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
             return false;
         }
-        if (Player1Col3DiceArray.Length != NUM_ROWS)
+        if (Player1Col3DiceArray.Length != DiceArrayBits.NUM_ROWS)
         {
-            msg = $"{nameof(Player1Col3DiceArray)} must have {NUM_ROWS} elements!";
+            msg = $"{nameof(Player1Col3DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
             return false;
         }
-        if (Player2Col1DiceArray.Length != NUM_ROWS)
+        if (Player2Col1DiceArray.Length != DiceArrayBits.NUM_ROWS)
         {
-            msg = $"{nameof(Player2Col1DiceArray)} must have {NUM_ROWS} elements!";
+            msg = $"{nameof(Player2Col1DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
             return false;
         }
-        if (Player2Col2DiceArray.Length != NUM_ROWS)
+        if (Player2Col2DiceArray.Length != DiceArrayBits.NUM_ROWS)
         {
-            msg = $"{nameof(Player2Col2DiceArray)} must have {NUM_ROWS} elements!";
+            msg = $"{nameof(Player2Col2DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
             return false;
         }
-        if (Player2Col3DiceArray.Length != NUM_ROWS)
+        if (Player2Col3DiceArray.Length != DiceArrayBits.NUM_ROWS)
         {
-            msg = $"{nameof(Player2Col3DiceArray)} must have {NUM_ROWS} elements!";
+            msg = $"{nameof(Player2Col3DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
             return false;
         }
-        if (Player1ColumnScoreTexts.Length != NUM_COLUMNS)
+        if (Player1ColumnScoreTexts.Length != DiceArrayBits.NUM_COLUMNS)
         {
-            msg = $"{nameof(Player1ColumnScoreTexts)} must have {NUM_COLUMNS} elements!";
+            msg = $"{nameof(Player1ColumnScoreTexts)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
             return false;
         }
-        if (Player2ColumnScoreTexts.Length != NUM_COLUMNS)
+        if (Player2ColumnScoreTexts.Length != DiceArrayBits.NUM_COLUMNS)
         {
-            msg = $"{nameof(Player2ColumnScoreTexts)} must have {NUM_COLUMNS} elements!";
+            msg = $"{nameof(Player2ColumnScoreTexts)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
             return false;
         }
 
@@ -750,201 +647,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
         // リセットボタンを無効化
         ResetButton.interactable = false;
     }
-
-    #region Dice計算
-
-    /// <summary>
-    /// サイコロの配置から通し番号を取得する。LSBから列0行0, 列0行1, 列0行2, 列1行0, ... となる
-    static int GetDiceArrayIndex(int col, int row) => col * NUM_ROWS + row;
-
-    /// <summary>
-    /// サイコロの配置からサイコロの値を取得する
-    /// </summary>
-    static int GetDiceArrayValue(ulong bits, int col, int row)
-    {
-        var index = GetDiceArrayIndex(col, row);
-        var bitOffset = index * DICE_BIT_WIDTH;
-
-        return (int)((bits >> bitOffset) & DICE_BIT_MASK);
-    }
-
-    /// <summary>
-    /// サイコロの配置を更新した値を返す
-    /// </summary>
-    static ulong ApplyDiceArrayValue(ulong bits, int col, int row, int value)
-    {
-        var index = GetDiceArrayIndex(col, row);
-        var bitOffset = index * DICE_BIT_WIDTH;
-
-        // 一度クリアしてからセットする
-        bits &= ~(DICE_BIT_MASK << bitOffset);
-        bits |= ((ulong)value & DICE_BIT_MASK) << bitOffset;
-
-        return bits;
-    }
-
-    /// <summary>
-    /// 列単位でサイコロの配置を取得する
-    /// </summary>
-    static int[] GetDiceArrayValueByColumn(ulong bits, int col)
-    {
-        var values = new int[NUM_ROWS];
-        for (var row = 0; row < NUM_ROWS; row++)
-        {
-            values[row] = GetDiceArrayValue(bits, col, row);
-        }
-        return values;
-    }
-
-    /// <summary>
-    /// 列内のサイコロが何個あるかを取得する
-    /// </summary>
-    static int[] GetDiceArrayRefCountByColumn(int[] values)
-    {
-        var refCounts = new int[values.Length];
-        for (var i = 0; i < refCounts.Length; i++)
-        {
-            refCounts[i] = 0;
-        }
-
-        for (int diceNum = MIN_DICE_VALUE; diceNum <= MAX_DICE_VALUE; diceNum++)
-        {
-            // 同じ値の数. Lambda非対応
-            var counts = 0;
-            foreach (var value in values)
-            {
-                if (value == diceNum)
-                {
-                    counts++;
-                }
-            }
-            // 書いておく
-            for (var row = 0; row < refCounts.Length; row++)
-            {
-                if (values[row] == diceNum)
-                {
-                    refCounts[row]++;
-                }
-            }
-        }
-        return refCounts;
-    }
-
-    /// <summary>
-    /// 列単位でサイコロの配置を更新した値を返す
-    /// </summary>
-    static ulong ApplyDiceArrayBitsByColumn(ulong bits, int col, int[] values)
-    {
-        for (var row = 0; row < NUM_ROWS; row++)
-        {
-            bits = ApplyDiceArrayValue(bits, col, row, values[row]);
-        }
-        return bits;
-    }
-
-    /// <summary>
-    /// 列内のスコアを計算する
-    /// サイコロの名の合計値だが、同じ値が複数ある場合その数分だけ乗算する
-    /// </summary>
-    static int GetDiceArrayScoreByColumn(ulong bits, int col)
-    {
-        var values = GetDiceArrayValueByColumn(bits, col);
-        var refCounts = GetDiceArrayRefCountByColumn(values);
-
-        // スコア計算本体
-        // value * refCountしておけば、複数個ある場合の計算が楽
-        // e.g. 2,5,2 => 2*2 + 5*1 + 2*2 = 13 = ((2+2)*2) + 5
-        // var score = Enumerable.Zip(values, refCounts, (v, c) => v * c).Sum();
-        // Lambdaが使えないので、手動で計算する
-        var score = 0;
-        for (var i = 0; i < values.Length; i++)
-        {
-            score += values[i] * refCounts[i];
-        }
-        return score;
-    }
-
-    /// <summary>
-    /// 全体のスコアを計算する
-    /// </summary>
-    static int GetDiceArrayTotalScore(ulong bits)
-    {
-        // Lambda非対応
-        // var scores = Enumerable.Range(0, NUM_COLUMNS).Select(col => GetDiceArrayScoreByColumn(bits, col));
-        var scores = 0;
-        for (var col = 0; col < NUM_COLUMNS; col++)
-        {
-            scores += GetDiceArrayScoreByColumn(bits, col);
-        }
-        return scores;
-    }
-
-    /// <summary>
-    /// 配置済のサイコロの数を取得する
-    /// </summary>
-    static int GetDiceArrayCountByColumn(ulong bits, int col)
-    {
-        var count = 0;
-        for (var row = 0; row < NUM_ROWS; row++)
-        {
-            if (GetDiceArrayValue(bits, col, row) != INVALID_DICE_VALUE)
-            {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /// <summary>
-    /// サイコロを置ける場所がなくなっていたらTrueを返す
-    /// </summary>
-    static bool IsNoPlaceToPutDice(ulong bits)
-    {
-        for (var col = 0; col < NUM_COLUMNS; col++)
-        {
-            if (GetDiceArrayCountByColumn(bits, col) < NUM_ROWS)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// 指定された列の指定された値を削除する
-    /// Playerがサイコロを配置時、相手の列に同じ値がある場合、その値を削除するために使用する
-    /// </summary>
-    static ulong RemoveSpecifiedDiceValueByColumn(ulong bits, int col, int value)
-    {
-        // 列の値を取得
-        var values = GetDiceArrayValueByColumn(bits, col);
-        // 削除対象のインデックスを除外した配列を作成
-        // Lambda非対応
-        // var remainedValues = values.Where(v => v != value).ToArray();
-        var remainedValues = new int[NUM_ROWS];
-        var remainedIndex = 0;
-        for (var i = 0; i < values.Length; i++)
-        {
-            if (values[i] != value)
-            {
-                remainedValues[remainedIndex] = values[i];
-                remainedIndex++;
-            }
-        }
-
-        // 列の値を前詰めで作り直す
-        var newValues = new int[NUM_ROWS];
-        for (var i = 0; i < newValues.Length; i++)
-        {
-            newValues[i] = i < remainedValues.Length ? remainedValues[i] : INVALID_DICE_VALUE;
-        }
-
-        // 列の値を更新したbitを返す
-        var newBits = ApplyDiceArrayBitsByColumn(bits, col, newValues);
-        return newBits;
-    }
-
-    #endregion
 
     /// <summary>
     /// Prints a message to the console
