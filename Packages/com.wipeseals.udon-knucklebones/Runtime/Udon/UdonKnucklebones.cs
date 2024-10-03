@@ -11,7 +11,7 @@ using System;
 /// <summary>
 /// エラーレベル
 /// </summary>
-enum ErrorLevel
+public enum ErrorLevel : int
 {
     Info,
     Warning,
@@ -21,7 +21,7 @@ enum ErrorLevel
 /// <summary>
 /// ゲームの勝敗状態
 /// </summary>
-enum GameJudge
+public enum GameJudge : int
 {
     Player1Win,
     Player2Win,
@@ -29,9 +29,78 @@ enum GameJudge
     Continue
 }
 
+/// <summary>
+/// ゲームの状態
+/// </summary>
+public enum GameProgress : int
+{
+    /// <summary>
+    /// 初期化直後
+    /// </summary>
+    Reset = 0,
+    /// <summary>
+    /// Player1の参加待ち
+    /// </summary>
+    WaitEnterPlayer1,
+    /// <summary>
+    /// Player2の参加待ち
+    /// </summary>
+    WaitEnterPlayer2,
+    /// <summary>
+    /// ゲーム開始。再戦用に設けた状態
+    /// </summary>
+    GameStart,
+    /// <summary>
+    /// Player1のサイコロ転がし待ち
+    /// </summary>
+    Player1Roll,
+    /// <summary>
+    /// Player1のサイコロ配置待ち
+    /// </summary>
+    Player1Put,
+    /// <summary>
+    /// Player2のサイコロ転がし待ち
+    /// </summary>
+    Player2Roll,
+    /// <summary>
+    /// Player2のサイコロ配置待ち
+    /// </summary>
+    Player2Put,
+    /// <summary>
+    /// ゲーム終了
+    /// </summary>
+    GameEnd,
+    /// <summary>
+    /// ゲーム中断
+    /// </summary>
+    GameAborted,
+}
+
+/// <summary>
+/// Playerの種類
+/// </summary>
+public enum PlayerType : int
+{
+    /// <summary>
+    /// 無効
+    /// </summary>
+    Invalid = 0,
+    /// <summary>
+    /// 人間
+    /// </summary>
+    Human,
+    /// <summary>
+    /// CPU
+    /// </summary>
+    CPU
+}
+
 [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
 public class UdonKnucklebones : UdonSharpBehaviour
 {
+    //////////////////////////////////////////////////////////////////////////////////////
+    #region Variables
+
     #region Constants
     /// <summary>
     /// Player1
@@ -44,7 +113,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
     public const int PLAYER2 = 1;
 
     #endregion
-
     #region Properties
 
     [Header("Udon Knucklebones")]
@@ -132,10 +200,153 @@ public class UdonKnucklebones : UdonSharpBehaviour
     public Button ResetButton = null;
 
     #endregion
+    #region Private Properties
 
+    #endregion
     #region Synced Properties
 
     [Header("Synced Properties")]
+
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Progress))]
+    public int _progress = 0;  // (int)Progress.Reset;
+
+    /// <summary>
+    /// ゲームの進行状態
+    /// </summary>
+    public int Progress
+    {
+        get => _progress;
+        set
+        {
+            _progress = (int)value;
+        }
+    }
+
+    /// <summary>
+    /// Player1のタイプ
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1Type))]
+    public int _player1Type = 0;  // (int)PlayerType.Invalid;
+
+    /// <summary>
+    /// Player1のタイプ
+    /// </summary>
+    public int Player1Type
+    {
+        get => _player1Type;
+        set
+        {
+            _player1Type = value;
+        }
+    }
+
+    /// <summary>
+    /// Player2のタイプ
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2Type))]
+    public int _player2Type = 0;  // (int)PlayerType.Invalid;
+
+    /// <summary>
+    /// Player2のタイプ
+    /// </summary>
+    public int Player2Type
+    {
+        get => (int)_player2Type;
+        set
+        {
+            _player2Type = (int)value;
+        }
+    }
+
+    /// <summary>
+    /// サイコロの値. 0は未転がし
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(RolledDiceValue))]
+    public int _rolledDiceValue = 0;
+
+    /// <summary>
+    /// サイコロの値. 0は未転がし
+    /// </summary>
+    public int RolledDiceValue
+    {
+        get => _rolledDiceValue;
+        set
+        {
+            _rolledDiceValue = value;
+        }
+    }
+
+    /// <summary>
+    /// Player1の名前
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1DisplayName))]
+    public string _player1DisplayName = "";
+
+    /// <summary>
+    /// Player1の名前
+    /// </summary>
+    public string Player1DisplayName
+    {
+        get => _player1DisplayName;
+        set
+        {
+            _player1DisplayName = value;
+        }
+    }
+
+    /// <summary>
+    /// Player2の名前
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2DisplayName))]
+    public string _player2DisplayName = "";
+
+    /// <summary>
+    /// Player2の名前
+    /// </summary>
+    public string Player2DisplayName
+    {
+        get => _player2DisplayName;
+        set
+        {
+            _player2DisplayName = value;
+        }
+    }
+
+    /// <summary>
+    /// Player1のPlayerId
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1PlayerId))]
+    public int _player1PlayerId = 0;
+
+    /// <summary>
+    /// Player1のPlayerId
+    /// </summary>
+    public int Player1PlayerId
+    {
+        get => _player1PlayerId;
+        set
+        {
+            _player1PlayerId = value;
+        }
+    }
+
+    /// <summary>
+    /// Player2のPlayerId
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2PlayerId))]
+    public int _player2PlayerId = 0;
+
+    /// <summary>
+    /// Player2のPlayerId
+    /// </summary>
+    public int Player2PlayerId
+    {
+        get => _player2PlayerId;
+        set
+        {
+            _player2PlayerId = value;
+        }
+    }
 
     /// <summary>
     /// 現在のターン数
@@ -152,7 +363,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
         set
         {
             _currentTurn = value;
-            OnUpdateSyncedProperties();
         }
     }
 
@@ -171,7 +381,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
         set
         {
             _currentPlayer = value;
-            OnUpdateSyncedProperties();
         }
     }
 
@@ -190,7 +399,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
         set
         {
             _player1DiceArrayBits = value;
-            OnUpdateSyncedProperties();
         }
     }
 
@@ -209,31 +417,13 @@ public class UdonKnucklebones : UdonSharpBehaviour
         set
         {
             _player2DiceArrayBits = value;
-            OnUpdateSyncedProperties();
         }
     }
     #endregion
-
-    #region Event for Sync
-
-    /// <summary>
-    /// Synced Propertiesが更新されたときに呼び出される。UIの更新を行う
-    /// </summary>
-    public void OnUpdateSyncedProperties()
-    {
-        TurnText.text = $"Turn: {CurrentTurn:D3}";
-        for (var col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
-        {
-            Player1ColumnScoreTexts[col].text = $"{Player1DiceArrayBits.GetColumnScore(col):D02}";
-            Player2ColumnScoreTexts[col].text = $"{Player2DiceArrayBits.GetColumnScore(col):D02}";
-        }
-        Player1MainScoreText.text = $"Player1: {Player1DiceArrayBits.GetTotalScore():D03} pt.";
-        Player2MainScoreText.text = $"Player2: {Player2DiceArrayBits.GetTotalScore():D03} pt.";
-
-        // TODO: 参加ボタンやら勝敗やらサイコロフリのステータスやら
-
-    }
     #endregion
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    #region Functions
 
     #region Utility for Synced Properties
 
@@ -272,10 +462,14 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// <summary>
     /// Synced Propertiesを手動で更新する
     /// </summary>
-    public void ManualSync()
+    public void SyncManually()
     {
+        // 自分用
+        OnUpdateSyncedProperties();
+        // 全員に送信
         RequestSerialization();
         SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnUpdateSyncedProperties));
+
     }
 
     /// <summary>
@@ -290,12 +484,20 @@ public class UdonKnucklebones : UdonSharpBehaviour
         }
 
         // Accessor経由で変更してからRequestSerialization
+        Progress = (int)GameProgress.Reset;
+        Player1Type = (int)PlayerType.Invalid;
+        Player2Type = (int)PlayerType.Invalid;
+        RolledDiceValue = 0;
+        Player1DisplayName = "";
+        Player2DisplayName = "";
+        Player1PlayerId = 0;
+        Player2PlayerId = 0;
         CurrentTurn = 1;
         CurrentPlayer = 1;
         Player1DiceArrayBits = 0;
         Player2DiceArrayBits = 0;
 
-        ManualSync();
+        SyncManually();
     }
 
     #region DiceArrayBits Accessor
@@ -376,8 +578,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
     #endregion
 
     #endregion
-
     #region Utility for Misc
+
     /// <summary>
     /// Inspectorの設定が完了しているか確認する
     /// </summary>
@@ -670,8 +872,9 @@ public class UdonKnucklebones : UdonSharpBehaviour
                 break;
         }
     }
-    #endregion
 
+    #endregion
+    #region Events
     void Start()
     {
         if (!IsFinishedInspectorSetting(out var msg))
@@ -689,4 +892,26 @@ public class UdonKnucklebones : UdonSharpBehaviour
 
         Log(ErrorLevel.Info, "Udon Knucklebones is ready!");
     }
+
+    /// <summary>
+    /// Synced Propertiesが更新されたときに呼び出される。UIの更新を行う
+    /// </summary>
+    public void OnUpdateSyncedProperties()
+    {
+        TurnText.text = $"Turn: {CurrentTurn:D3}";
+        for (var col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+        {
+            Player1ColumnScoreTexts[col].text = $"{Player1DiceArrayBits.GetColumnScore(col):D02}";
+            Player2ColumnScoreTexts[col].text = $"{Player2DiceArrayBits.GetColumnScore(col):D02}";
+        }
+        Player1MainScoreText.text = $"Player1: {Player1DiceArrayBits.GetTotalScore():D03} pt.";
+        Player2MainScoreText.text = $"Player2: {Player2DiceArrayBits.GetTotalScore():D03} pt.";
+
+        // TODO: 参加ボタンやら勝敗やらサイコロフリのステータスやら
+
+    }
+    #endregion
+
+    #endregion
+    //////////////////////////////////////////////////////////////////////////////////////
 }

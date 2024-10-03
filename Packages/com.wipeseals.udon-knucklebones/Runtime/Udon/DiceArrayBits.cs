@@ -6,7 +6,9 @@ using VRC.Udon;
 using TMPro;
 using System;
 
-
+/// <summary>
+/// サイコロの配置をビットで管理する
+/// </summary>
 public static class DiceArrayBits
 {
     #region Constants
