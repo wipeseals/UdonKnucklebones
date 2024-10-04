@@ -462,6 +462,15 @@ public class UdonKnucklebones : UdonSharpBehaviour
     #region Synced Properties Accessor
 
     /// <summary>
+    /// Player1のサイコロ列の配列
+    /// </summary>
+    public Animator[][] Player1ColDiceArrayList => new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray };
+    /// <summary>
+    /// Player2のサイコロ列の配列
+    /// </summary>
+    public Animator[][] Player2ColDiceArrayList => new[] { Player2Col1DiceArray, Player2Col2DiceArray, Player2Col3DiceArray };
+
+    /// <summary>
     /// Unity Debug時かどうか
     /// </summary>
     public bool IsUnityDebug => Networking.LocalPlayer == null;
@@ -966,6 +975,31 @@ public class UdonKnucklebones : UdonSharpBehaviour
         ResetSyncedProperties(); // state: * -> Reset
         SyncManually();
     }
+
+    // Animation Test
+    public void OnTestAnimation1()
+    {
+        var number = UnityEngine.Random.Range(DiceArrayBits.MIN_DICE_VALUE, DiceArrayBits.MAX_DICE_VALUE + 1);
+        var refCount = UnityEngine.Random.Range(0, 4);
+
+        for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+        {
+            var player1RefCount = Player1DiceArrayBits.GetColumnRefCount(col);
+            var player2RefCount = Player2DiceArrayBits.GetColumnRefCount(col);
+
+            for (int row = 0; row < DiceArrayBits.NUM_ROWS; row++)
+            {
+                var dice1 = Player1ColDiceArrayList[col][row];
+                var dice2 = Player2ColDiceArrayList[col][row];
+
+                dice1.SetInteger("Number", number);
+                dice1.SetInteger("RefCount", refCount);
+                dice2.SetInteger("Number", number);
+                dice2.SetInteger("RefCount", refCount);
+            }
+        }
+        SendCustomEventDelayedSeconds(nameof(OnTestAnimation1), 1.5f);
+    }
     #endregion
 
     #region Event Handlers
@@ -1080,8 +1114,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
         }
 
         // Player1/2のサイコロ表示状態を同期
-        var player1DiceArray = new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray };
-        var player2DiceArray = new[] { Player2Col1DiceArray, Player2Col2DiceArray, Player2Col3DiceArray };
         for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
         {
             var player1RefCount = Player1DiceArrayBits.GetColumnRefCount(col);
@@ -1089,12 +1121,12 @@ public class UdonKnucklebones : UdonSharpBehaviour
 
             for (int row = 0; row < DiceArrayBits.NUM_ROWS; row++)
             {
-                var dice1 = player1DiceArray[col][row];
+                var dice1 = Player1ColDiceArrayList[col][row];
                 dice1.gameObject.SetActive(true); // 表示はずっとする
                 dice1.SetInteger("Number", Player1DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                 dice1.SetInteger("RefCount", player1RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
 
-                var dice2 = player2DiceArray[col][row];
+                var dice2 = Player2ColDiceArrayList[col][row];
                 dice2.gameObject.SetActive(true); // 表示はずっとする
                 dice2.SetInteger("Number", Player2DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                 dice2.SetInteger("RefCount", player2RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
