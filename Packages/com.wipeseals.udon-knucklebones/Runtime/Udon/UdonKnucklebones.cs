@@ -35,9 +35,10 @@ public enum GameJudge : int
 public enum GameProgress : int
 {
     /// <summary>
-    /// 初期化直後
+    /// 初期状態。IsActive=falseで開始されたケースでOnEnable/OnDisable/Startが呼ばれない
+    /// OnPlayerJoinedで初期化する
     /// </summary>
-    Reset = 0,
+    Initial = 0,
     /// <summary>
     /// Player1の参加待ち
     /// </summary>
@@ -50,22 +51,42 @@ public enum GameProgress : int
     /// ゲーム開始。再戦用に設けた状態
     /// </summary>
     GameStart,
+
     /// <summary>
     /// Player1のサイコロ転がし待ち
     /// </summary>
-    Player1Roll,
+    WaitPlayer1Roll,
+    /// <summary>
+    /// Player1のサイコロ転がし中
+    /// </summary>
+    Player1Rolling,
     /// <summary>
     /// Player1のサイコロ配置待ち
     /// </summary>
-    Player1Put,
+    WaitPlayer1Put,
+    /// <summary>
+    /// Player2のサイコロ計算待ち。ついでにサイコロの前詰めアニメーションも行う
+    /// </summary>
+    WaitPlayer1Calc,
+
     /// <summary>
     /// Player2のサイコロ転がし待ち
     /// </summary>
-    Player2Roll,
+    WaitPlayer2Roll,
+    /// <summary>
+    /// Player1のサイコロ転がし中
+    /// </summary>
+    Player2Rolling,
     /// <summary>
     /// Player2のサイコロ配置待ち
     /// </summary>
-    Player2Put,
+    WaitPlayer2Put,
+    /// <summary>
+    /// Player2のサイコロ計算待ち。ついでにサイコロの前詰めアニメーションも行う
+    /// 次の遷移先はWaitPlayer1Roll or GameEnd
+    /// </summary>
+    WaitPlayer2Calc,
+
     /// <summary>
     /// ゲーム終了
     /// </summary>
@@ -73,7 +94,7 @@ public enum GameProgress : int
     /// <summary>
     /// ゲーム中断
     /// </summary>
-    GameAborted,
+    Aborted,
 }
 
 /// <summary>
@@ -181,23 +202,20 @@ public class UdonKnucklebones : UdonSharpBehaviour
     [SerializeField, Tooltip("Player1参加ボタン")]
     public Button Player1EntryButton = null;
 
-    [SerializeField, Tooltip("Player1離脱ボタン")]
-    public Button Player1LeaveButton = null;
-
     [SerializeField, Tooltip("Player1 CPU参加ボタン")]
     public Button Player1CPUEntryButton = null;
 
     [SerializeField, Tooltip("Player2参加ボタン")]
     public Button Player2EntryButton = null;
 
-    [SerializeField, Tooltip("Player2離脱ボタン")]
-    public Button Player2LeaveButton = null;
-
     [SerializeField, Tooltip("Player2 CPU参加ボタン")]
     public Button Player2CPUEntryButton = null;
 
     [SerializeField, Tooltip("リセットボタン")]
     public Button ResetButton = null;
+
+    [SerializeField, Tooltip("リマッチボタン")]
+    public Button RematchButton = null;
 
     #endregion
     #region Private Properties
@@ -219,6 +237,24 @@ public class UdonKnucklebones : UdonSharpBehaviour
         set
         {
             _progress = (int)value;
+        }
+    }
+
+    /// <summary>
+    /// システムメッセージ
+    /// </summary>
+    [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(SystemMessage))]
+    public string _systemMessage = "";
+
+    /// <summary>
+    /// システムメッセージ
+    /// </summary>
+    public string SystemMessage
+    {
+        get => _systemMessage;
+        set
+        {
+            _systemMessage = value;
         }
     }
 
@@ -426,6 +462,11 @@ public class UdonKnucklebones : UdonSharpBehaviour
     #region Synced Properties Accessor
 
     /// <summary>
+    /// Unity Debug時かどうか
+    /// </summary>
+    public bool IsUnityDebug => Networking.LocalPlayer == null;
+
+    /// <summary>
     /// Ownerだったらtrueを返す
     /// </summary>
     public bool IsOwner
@@ -467,10 +508,10 @@ public class UdonKnucklebones : UdonSharpBehaviour
         Log(ErrorLevel.Info, $"{nameof(SyncManually)}");
 
         // 自分用
-        OnUpdateSyncedProperties();
+        OnUIUpdate();
         // 全員に送信
         RequestSerialization();
-        SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnUpdateSyncedProperties));
+        SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnUIUpdate));
 
     }
 
@@ -488,7 +529,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
         }
 
         // Accessor経由で変更してからRequestSerialization
-        Progress = (int)GameProgress.Reset;
+        Progress = (int)GameProgress.WaitEnterPlayer1;
+        SystemMessage = "Waiting for Player1";
         Player1Type = (int)PlayerType.Invalid;
         Player2Type = (int)PlayerType.Invalid;
         RolledDiceValue = 0;
@@ -497,10 +539,29 @@ public class UdonKnucklebones : UdonSharpBehaviour
         Player1PlayerId = 0;
         Player2PlayerId = 0;
         CurrentTurn = 1;
-        CurrentPlayer = 1;
+        CurrentPlayer = UnityEngine.Random.Range(0, 2); // 0 or 1
         Player1DiceArrayBits = 0;
         Player2DiceArrayBits = 0;
+    }
 
+    /// <summary>
+    /// Progress/SystemMsg を更新する
+    /// </summary>
+    /// <param name="progress"></param>
+    /// <param name="msg"></param>
+    void UpdateProgressWithMsg(GameProgress progress, string msg)
+    {
+        Log(ErrorLevel.Info, $"{nameof(UpdateProgressWithMsg)}: {progress}, {msg}");
+
+        // Ownerのみが変更できる。Ownerでなければ取得
+        if (!IsOwner)
+        {
+            ChangeOwner();
+        }
+
+        // Accessor経由で変更してからRequestSerialization
+        Progress = (int)progress;
+        SystemText.text = msg;
         SyncManually();
     }
     #endregion
@@ -600,9 +661,9 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// </summary>
     /// <param name="msg"></param>
     /// <returns></returns>
-    bool IsFinishedInspectorSetting(out string msg)
+    bool IsValidInspectorSettings(out string msg)
     {
-        Log(ErrorLevel.Info, $"{nameof(IsFinishedInspectorSetting)}");
+        Log(ErrorLevel.Info, $"{nameof(IsValidInspectorSettings)}");
 
         // Check if all required fields are set
         if (DiceForReady == null)
@@ -695,11 +756,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
             msg = $"{nameof(Player1EntryButton)} is not set!";
             return false;
         }
-        if (Player1LeaveButton == null)
-        {
-            msg = $"{nameof(Player1LeaveButton)} is not set!";
-            return false;
-        }
         if (Player1CPUEntryButton == null)
         {
             msg = $"{nameof(Player1CPUEntryButton)} is not set!";
@@ -710,11 +766,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
             msg = $"{nameof(Player2EntryButton)} is not set!";
             return false;
         }
-        if (Player2LeaveButton == null)
-        {
-            msg = $"{nameof(Player2LeaveButton)} is not set!";
-            return false;
-        }
         if (Player2CPUEntryButton == null)
         {
             msg = $"{nameof(Player2CPUEntryButton)} is not set!";
@@ -723,6 +774,11 @@ public class UdonKnucklebones : UdonSharpBehaviour
         if (ResetButton == null)
         {
             msg = $"{nameof(ResetButton)} is not set!";
+            return false;
+        }
+        if (RematchButton == null)
+        {
+            msg = $"{nameof(RematchButton)} is not set!";
             return false;
         }
 
@@ -795,12 +851,12 @@ public class UdonKnucklebones : UdonSharpBehaviour
         DiceForReady.gameObject.SetActive(true);
         DiceForReady.SetBool("IsReady", true);
 
+        // DiceRollColliderを無効化
+        DiceRollCollider.IsEventSendable = false;
+
         // DiceForRollの位置をリセットして非表示で待機状態にする
         DiceForRoll.transform.position = DiceForReady.transform.position;
         DiceForRoll.SetActive(false);
-
-        // DiceRollColliderを無効化
-        DiceRollCollider.IsEventSendable = false;
 
         // Player1 Column Collidersを無効化
         foreach (var collider in Player1ColumnColliders)
@@ -857,16 +913,15 @@ public class UdonKnucklebones : UdonSharpBehaviour
 
         // Player1のボタンを有効化
         Player1EntryButton.interactable = true;
-        Player1LeaveButton.interactable = false;
         Player1CPUEntryButton.interactable = true;
 
         // Player2のボタンを有効化
         Player2EntryButton.interactable = true;
-        Player2LeaveButton.interactable = false;
         Player2CPUEntryButton.interactable = true;
 
         // リセットボタンを無効化
         ResetButton.interactable = false;
+        RematchButton.interactable = false;
     }
 
     /// <summary>
@@ -894,36 +949,159 @@ public class UdonKnucklebones : UdonSharpBehaviour
     #endregion
 
     #region Event Process
+
+    /// <summary>
+    /// ゲームの完全初期化。Playerなども含めてクリア
+    /// Ownerではない場合は、Ownerに通知
+    /// </summary>
+    public void InitGame()
+    {
+        Log(ErrorLevel.Info, $"{nameof(InitGame)}");
+        if (!IsOwner)
+        {
+            SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner, nameof(InitGame));
+            return;
+        }
+        // 変数初期化して同期
+        ResetSyncedProperties(); // state: * -> Reset
+        SyncManually();
+    }
     #endregion
 
     #region Event Handlers
     void Start()
     {
         Log(ErrorLevel.Info, $"{nameof(Start)}");
+    }
 
-        // 設定完了確認とUIのリセット
-        if (!IsFinishedInspectorSetting(out var msg))
+    public override void OnPlayerJoined(VRCPlayerApi player)
+    {
+        Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {player.displayName} {IsOwner}");
+
+        // 初期化必要な場合
+        if (Progress == (int)GameProgress.Initial)
         {
-            Log(ErrorLevel.Error, msg);
-            return;
+            // 設定完了確認とUIのリセット
+            if (!IsValidInspectorSettings(out var msg))
+            {
+                Log(ErrorLevel.Error, msg);
+                return;
+            }
+            ResetAllUIState();
+
+            // 初期化直後かつOwnerの1回に限り、初期化処理を行う
+            if (IsOwner)
+            {
+                InitGame();
+            }
         }
-        ResetAllUIState();
 
-        // Ownerの場合だけ初期化実行者になる
-        if (Networking.IsOwner(gameObject))
+        // OnPlayerJoined時点で変数は同期済のようだが、RequestSerialization未実施分の差分があるかもしれないので送っておく
+        if (IsOwner)
         {
-            ResetSyncedProperties();
+            SyncManually();
+        }
+    }
+
+    public override void OnPlayerLeft(VRCPlayerApi player)
+    {
+        Log(ErrorLevel.Info, $"{nameof(OnPlayerLeft)}: {player.displayName} {IsOwner}");
+
+        // Ownerの場合、Playerどちらかに含まれるか検査し、抜けた場合はAbort
+        if (IsOwner)
+        {
+            if (Player1PlayerId == player.playerId)
+            {
+                // Player1が抜けた
+                Player1PlayerId = 0;
+                Player1DisplayName = "";
+                Player1Type = (int)PlayerType.Invalid;
+                Progress = (int)GameProgress.Aborted;
+                Log(ErrorLevel.Warning, $"{nameof(OnPlayerLeft)}: Player1");
+            }
+            else if (Player2PlayerId == player.playerId)
+            {
+                // Player2が抜けた
+                Player2PlayerId = 0;
+                Player2DisplayName = "";
+                Player2Type = (int)PlayerType.Invalid;
+                Progress = (int)GameProgress.Aborted;
+                Log(ErrorLevel.Warning, $"{nameof(OnPlayerLeft)}: Player2");
+            }
+            SyncManually();
         }
     }
 
     /// <summary>
     /// Synced Propertiesが更新されたときに呼び出される。UIの更新を行う
     /// </summary>
-    public void OnUpdateSyncedProperties()
+    public void OnUIUpdate()
     {
-        Log(ErrorLevel.Info, $"{nameof(OnUpdateSyncedProperties)}");
+        Log(ErrorLevel.Info, $"{nameof(OnUIUpdate)}");
 
-        TurnText.text = $"Turn: {CurrentTurn:D3}";
+        // 頭上で回転するサイコロは、Roll待ちのケースでのみ表示。Userが触れるのはここだけ
+        // Unity DebugだとNetworking.LocalPlayerが取得できないので無視
+        bool isRollReady = (IsUnityDebug)
+            || (Networking.LocalPlayer.playerId == Player1PlayerId && Progress == (int)GameProgress.WaitPlayer1Roll)
+            || (Networking.LocalPlayer.playerId == Player2PlayerId && Progress == (int)GameProgress.WaitPlayer2Roll);
+        DiceForReady.gameObject.SetActive(isRollReady);
+        DiceForReady.SetBool("IsReady", isRollReady);
+        DiceRollCollider.IsEventSendable = isRollReady;
+
+        // 転がす前の場合は、転がしたあとのサイコロは非表示かつ場所リセット
+        if (isRollReady)
+        {
+            DiceForRoll.SetActive(false);
+            DiceForRoll.transform.position = DiceForReady.transform.position;
+        }
+        else
+        {
+            // サイコロを転がし始めてから配置するまでは、サイコロを転がし中として扱う
+            bool isRolled = (Progress == (int)GameProgress.Player1Rolling)
+                         || (Progress == (int)GameProgress.Player2Rolling)
+                         || (Progress == (int)GameProgress.WaitPlayer1Put)
+                         || (Progress == (int)GameProgress.WaitPlayer1Put);
+            DiceForRoll.SetActive(isRolled);
+        }
+
+        // Player1の配置ができるのは、Player1の配置待ちの場合
+        // ただし、各列のサイコロ配置数が最大に達している場合は配置できない
+        bool isPlayer1Put = (IsUnityDebug) || (Networking.LocalPlayer.playerId == Player1PlayerId && Progress == (int)GameProgress.WaitPlayer1Put);
+        for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+        {
+            // Player1のボタンが押せるケースは配置まちかつPlayer1が自分自身の場合
+            Player1ColumnColliders[col].IsEventSendable = isPlayer1Put && !Player1DiceArrayBits.IsColumnFull(col);
+        }
+        // Player2も同様
+        bool isPlayer2Put = (IsUnityDebug) || (Networking.LocalPlayer.playerId == Player2PlayerId && Progress == (int)GameProgress.WaitPlayer2Put);
+        for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+        {
+            Player2ColumnColliders[col].IsEventSendable = isPlayer2Put && !Player2DiceArrayBits.IsColumnFull(col);
+        }
+
+        // Player1/2のサイコロ表示状態を同期
+        var player1DiceArray = new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray };
+        var player2DiceArray = new[] { Player2Col1DiceArray, Player2Col2DiceArray, Player2Col3DiceArray };
+        for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+        {
+            var player1RefCount = Player1DiceArrayBits.GetColumnRefCount(col);
+            var player2RefCount = Player2DiceArrayBits.GetColumnRefCount(col);
+
+            for (int row = 0; row < DiceArrayBits.NUM_ROWS; row++)
+            {
+                var dice1 = player1DiceArray[col][row];
+                dice1.gameObject.SetActive(true); // 表示はずっとする
+                dice1.SetInteger("Number", Player1DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
+                dice1.SetInteger("RefCount", player1RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+
+                var dice2 = player2DiceArray[col][row];
+                dice2.gameObject.SetActive(true); // 表示はずっとする
+                dice2.SetInteger("Number", Player2DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
+                dice2.SetInteger("RefCount", player2RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+            }
+        }
+
+        // スコア表示を更新
         for (var col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
         {
             Player1ColumnScoreTexts[col].text = $"{Player1DiceArrayBits.GetColumnScore(col):D02}";
@@ -932,8 +1110,71 @@ public class UdonKnucklebones : UdonSharpBehaviour
         Player1MainScoreText.text = $"Player1: {Player1DiceArrayBits.GetTotalScore():D03} pt.";
         Player2MainScoreText.text = $"Player2: {Player2DiceArrayBits.GetTotalScore():D03} pt.";
 
-        // TODO: 参加ボタンやら勝敗やらサイコロフリのステータスやら
+        // ターン表示を更新
+        TurnText.text = $"Turn: {CurrentTurn:D3}";
 
+        // システムメッセージを更新
+        switch ((GameProgress)Progress)
+        {
+            case GameProgress.Initial:
+                SystemText.text = "Booting...";
+                break;
+            case GameProgress.WaitEnterPlayer1:
+                SystemText.text = "Waiting for Player1";
+                break;
+            case GameProgress.WaitEnterPlayer2:
+                SystemText.text = "Waiting for Player2";
+                break;
+            case GameProgress.GameStart:
+                SystemText.text = "Game Start!";
+                break;
+
+            case GameProgress.WaitPlayer1Roll:
+                SystemText.text = "Player1: Roll the dice!";
+                break;
+            case GameProgress.Player1Rolling:
+                SystemText.text = "Player1: Rolling the dice...";
+                break;
+            case GameProgress.WaitPlayer1Put:
+                SystemText.text = $"Player1: Put the dice! dice={RolledDiceValue}";
+                break;
+            case GameProgress.WaitPlayer1Calc:
+                SystemText.text = "Player1: Calculating...";
+                break;
+
+            case GameProgress.WaitPlayer2Roll:
+                SystemText.text = "Player2: Roll the dice!";
+                break;
+            case GameProgress.Player2Rolling:
+                SystemText.text = "Player2: Rolling the dice...";
+                break;
+            case GameProgress.WaitPlayer2Put:
+                SystemText.text = $"Player2: Put the dice! dice={RolledDiceValue}";
+                break;
+            case GameProgress.WaitPlayer2Calc:
+                SystemText.text = "Player2: Calculating...";
+                break;
+
+            case GameProgress.GameEnd:
+                SystemText.text = $"Game End! {CalcGameJudge(CurrentPlayer)}";
+                break;
+            case GameProgress.Aborted:
+                SystemText.text = "Game Aborted!";
+                break;
+            default:
+                break;
+        }
+
+        // Join済ならLeaveだけ。Join前ならEntryだけ
+        Player1EntryButton.interactable = (Player1PlayerId == 0);
+        Player1CPUEntryButton.interactable = (Player1PlayerId == 0);
+        Player2EntryButton.interactable = (Player2PlayerId == 0);
+        Player2CPUEntryButton.interactable = (Player2PlayerId == 0);
+
+        // リセット/リマッチボタンはいたずら防止にPlayerどちらかしか押せないようにする
+        bool isResetable = (IsUnityDebug) || (Networking.LocalPlayer.playerId == Player1PlayerId || Networking.LocalPlayer.playerId == Player2PlayerId);
+        ResetButton.interactable = isResetable;
+        RematchButton.interactable = isResetable;
     }
 
     /// <summary>
@@ -943,15 +1184,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
     {
         Log(ErrorLevel.Info, nameof(OnPlayer1Entry));
         // TODO: Player1の参加処理
-    }
-
-    /// <summary>
-    /// Player1が離脱ボタンを押したときに呼び出される
-    /// </summary>
-    public void OnPlayer1Leave()
-    {
-        Log(ErrorLevel.Info, nameof(OnPlayer1Leave));
-        // TODO: Player1の離脱処理
     }
 
     /// <summary>
@@ -970,15 +1202,6 @@ public class UdonKnucklebones : UdonSharpBehaviour
     {
         Log(ErrorLevel.Info, nameof(OnPlayer2Entry));
         // TODO: Player2の参加処理
-    }
-
-    /// <summary>
-    /// Player2が離脱ボタンを押したときに呼び出される
-    /// </summary>
-    public void OnPlayer2Leave()
-    {
-        Log(ErrorLevel.Info, nameof(OnPlayer2Leave));
-        // TODO: Player2の離脱処理
     }
 
     /// <summary>
@@ -1071,5 +1294,4 @@ public class UdonKnucklebones : UdonSharpBehaviour
     }
 
     #endregion
-    //////////////////////////////////////////////////////////////////////////////////////
 }

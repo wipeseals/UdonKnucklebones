@@ -98,8 +98,9 @@ public static class DiceArrayBits
     /// <summary>
     /// 列内のサイコロが何個あるかを取得する
     /// </summary>
-    public static int[] GetColumnRefCount(this int[] values)
+    public static int[] GetColumnRefCount(this ulong bits, int col)
     {
+        var values = bits.GetColumn(col);
         var refCounts = new int[values.Length];
         for (var i = 0; i < refCounts.Length; i++)
         {
@@ -148,7 +149,7 @@ public static class DiceArrayBits
     public static int GetColumnScore(this ulong bits, int col)
     {
         var values = bits.GetColumn(col);
-        var refCounts = GetColumnRefCount(values);
+        var refCounts = bits.GetColumnRefCount(col);
 
         // スコア計算本体
         // value * refCountしておけば、複数個ある場合の計算が楽
