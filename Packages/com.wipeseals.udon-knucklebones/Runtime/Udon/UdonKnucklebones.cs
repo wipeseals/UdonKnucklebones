@@ -129,14 +129,14 @@ public class UdonKnucklebones : UdonSharpBehaviour
     public GameObject DiceForRoll = null;
 
     [SerializeField, Tooltip("サイコロを転がす際にUseするCollider")]
-    public Collider DiceRollCollider = null;
+    public EventEmitter DiceRollCollider = null;
 
     [Header("Selection Objects")]
     [SerializeField, Tooltip("Player1がサイコロを配置するときに列選択するためのCollider")]
-    public Collider[] Player1ColumnColliders = null;
+    public EventEmitter[] Player1ColumnColliders = null;
 
     [SerializeField, Tooltip("Player2がサイコロを配置するときに列選択するためのCollider")]
-    public Collider[] Player2ColumnColliders = null;
+    public EventEmitter[] Player2ColumnColliders = null;
 
     [Header("Dice Arrays")]
     [SerializeField, Tooltip("Player1の1列目のサイコロ格納用")]
@@ -781,18 +781,18 @@ public class UdonKnucklebones : UdonSharpBehaviour
         DiceForRoll.SetActive(false);
 
         // DiceRollColliderを無効化
-        DiceRollCollider.enabled = false;
+        DiceRollCollider.IsEventSendable = false;
 
         // Player1 Column Collidersを無効化
         foreach (var collider in Player1ColumnColliders)
         {
-            collider.enabled = false;
+            collider.IsEventSendable = false;
         }
 
         // Player2 Column Collidersを無効化
         foreach (var collider in Player2ColumnColliders)
         {
-            collider.enabled = false;
+            collider.IsEventSendable = false;
         }
 
         // Player1のサイコロをAnimation Controllerから非表示に設定する
