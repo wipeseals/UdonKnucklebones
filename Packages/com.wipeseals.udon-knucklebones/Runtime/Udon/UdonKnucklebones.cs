@@ -423,9 +423,7 @@ public class UdonKnucklebones : UdonSharpBehaviour
     #endregion
 
     //////////////////////////////////////////////////////////////////////////////////////
-    #region Functions
-
-    #region Utility for Synced Properties
+    #region Synced Properties Accessor
 
     /// <summary>
     /// Ownerだったらtrueを返す
@@ -449,6 +447,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// </summary>
     public void ChangeOwner()
     {
+        Log(ErrorLevel.Info, $"{nameof(ChangeOwner)}");
+
         // Ownerだったら何もしない
         if (IsOwner) return;
 
@@ -464,6 +464,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// </summary>
     public void SyncManually()
     {
+        Log(ErrorLevel.Info, $"{nameof(SyncManually)}");
+
         // 自分用
         OnUpdateSyncedProperties();
         // 全員に送信
@@ -477,6 +479,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// </summary>
     void ResetSyncedProperties()
     {
+        Log(ErrorLevel.Info, $"{nameof(ResetSyncedProperties)}: IsOwner={IsOwner}");
+
         // Ownerのみが変更できる。Ownerでなければ取得
         if (!IsOwner)
         {
@@ -499,6 +503,7 @@ public class UdonKnucklebones : UdonSharpBehaviour
 
         SyncManually();
     }
+    #endregion
 
     #region DiceArrayBits Accessor
 
@@ -512,6 +517,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// </summary>
     void SetDiceArrayBits(int player, ulong bits)
     {
+        Log(ErrorLevel.Info, $"{nameof(SetDiceArrayBits)}: player={player}, bits={bits:016X}");
+
         if (player == PLAYER1)
         {
             Player1DiceArrayBits = bits;
@@ -526,14 +533,23 @@ public class UdonKnucklebones : UdonSharpBehaviour
         }
     }
 
-    void Put(int player, int col, int value, bool isIndexCross = true)
+    void PutDice(int player, int col, int value, bool isIndexCross = true)
     {
+        Log(ErrorLevel.Info, $"{nameof(PutDice)}: player={player}, col={col}, value={value}, isIndexCross={isIndexCross}");
+
+        // 現在のターンのプレイヤーか確認してから
+        if (player != CurrentPlayer)
+        {
+            Log(ErrorLevel.Warning, $"Invalid player number: {player}");
+            return;
+        }
+
         var srcBits = GetDiceArrayBits(player);
         // 指定された列の末尾に配置
         var rowIndex = srcBits.GetColumnCount(col);
         if (rowIndex >= DiceArrayBits.NUM_ROWS)
         {
-            Log(ErrorLevel.Error, $"Cannot place dice to column {col}");
+            Log(ErrorLevel.Warning, $"Cannot place dice to column {col}");
             return;
         }
         SetDiceArrayBits(player, srcBits.PutDice(col, rowIndex, value));
@@ -549,7 +565,7 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// <summary>
     /// ゲームの勝敗を取得
     /// </summary>
-    GameJudge GetGameJudge(int currentTurnPlayer)
+    GameJudge CalcGameJudge(int currentTurnPlayer)
     {
         // 現在のターンのプレイヤーが配置後、置けなくなった時点で終了
         if (!GetDiceArrayBits(currentTurnPlayer).IsFull())
@@ -577,8 +593,7 @@ public class UdonKnucklebones : UdonSharpBehaviour
 
     #endregion
 
-    #endregion
-    #region Utility for Misc
+    #region UI Utility
 
     /// <summary>
     /// Inspectorの設定が完了しているか確認する
@@ -587,6 +602,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// <returns></returns>
     bool IsFinishedInspectorSetting(out string msg)
     {
+        Log(ErrorLevel.Info, $"{nameof(IsFinishedInspectorSetting)}");
+
         // Check if all required fields are set
         if (DiceForReady == null)
         {
@@ -770,8 +787,10 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// <summary>
     /// すべての状態をリセットする
     /// </summary>
-    void ResetAllState()
+    void ResetAllUIState()
     {
+        Log(ErrorLevel.Info, $"{nameof(ResetAllUIState)}");
+
         // DiceForReadyのAnimationをリセット
         DiceForReady.gameObject.SetActive(true);
         DiceForReady.SetBool("IsReady", true);
@@ -872,25 +891,29 @@ public class UdonKnucklebones : UdonSharpBehaviour
                 break;
         }
     }
-
     #endregion
-    #region Events
+
+    #region Event Process
+    #endregion
+
+    #region Event Handlers
     void Start()
     {
+        Log(ErrorLevel.Info, $"{nameof(Start)}");
+
+        // 設定完了確認とUIのリセット
         if (!IsFinishedInspectorSetting(out var msg))
         {
             Log(ErrorLevel.Error, msg);
             return;
         }
-        ResetAllState();
+        ResetAllUIState();
 
         // Ownerの場合だけ初期化実行者になる
         if (Networking.IsOwner(gameObject))
         {
             ResetSyncedProperties();
         }
-
-        Log(ErrorLevel.Info, "Udon Knucklebones is ready!");
     }
 
     /// <summary>
@@ -898,6 +921,8 @@ public class UdonKnucklebones : UdonSharpBehaviour
     /// </summary>
     public void OnUpdateSyncedProperties()
     {
+        Log(ErrorLevel.Info, $"{nameof(OnUpdateSyncedProperties)}");
+
         TurnText.text = $"Turn: {CurrentTurn:D3}";
         for (var col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
         {
@@ -910,7 +935,140 @@ public class UdonKnucklebones : UdonSharpBehaviour
         // TODO: 参加ボタンやら勝敗やらサイコロフリのステータスやら
 
     }
-    #endregion
+
+    /// <summary>
+    /// Player1が参加ボタンを押したときに呼び出される
+    /// </summary>
+    public void OnPlayer1Entry()
+    {
+        Log(ErrorLevel.Info, nameof(OnPlayer1Entry));
+        // TODO: Player1の参加処理
+    }
+
+    /// <summary>
+    /// Player1が離脱ボタンを押したときに呼び出される
+    /// </summary>
+    public void OnPlayer1Leave()
+    {
+        Log(ErrorLevel.Info, nameof(OnPlayer1Leave));
+        // TODO: Player1の離脱処理
+    }
+
+    /// <summary>
+    /// Player1がCPU参加ボタンを押したときに呼び出される
+    /// </summary>
+    public void OnPlayer1CPUEntry()
+    {
+        Log(ErrorLevel.Info, nameof(OnPlayer1CPUEntry));
+        // TODO: Player1のCPU参加処理
+    }
+
+    /// <summary>
+    /// Player2が参加ボタンを押したときに呼び出される
+    /// </summary>
+    public void OnPlayer2Entry()
+    {
+        Log(ErrorLevel.Info, nameof(OnPlayer2Entry));
+        // TODO: Player2の参加処理
+    }
+
+    /// <summary>
+    /// Player2が離脱ボタンを押したときに呼び出される
+    /// </summary>
+    public void OnPlayer2Leave()
+    {
+        Log(ErrorLevel.Info, nameof(OnPlayer2Leave));
+        // TODO: Player2の離脱処理
+    }
+
+    /// <summary>
+    /// Player2がCPU参加ボタンを押したときに呼び出される
+    /// </summary>
+    public void OnPlayer2CPUEntry()
+    {
+        Log(ErrorLevel.Info, nameof(OnPlayer2CPUEntry));
+        // TODO: Player2のCPU参加処理
+    }
+
+    /// <summary>
+    /// リマッチボタンを押したときに呼び出される
+    /// </summary>
+    public void OnRematch()
+    {
+        Log(ErrorLevel.Info, nameof(OnRematch));
+        // TODO: リマッチ処理
+    }
+
+    /// <summary>
+    /// リセットボタンを押したときに呼び出される
+    /// </summary>
+    public void OnReset()
+    {
+        Log(ErrorLevel.Info, nameof(OnReset));
+        // TODO: リセット処理
+    }
+
+    /// <summary>
+    /// サイコロを転がしをUseしたときに呼び出される
+    /// </summary>
+    public void OnRollDice()
+    {
+        Log(ErrorLevel.Info, nameof(OnRollDice));
+    }
+
+    /// <summary>
+    /// Player1が1列目にサイコロを配置したときに呼び出される
+    /// </summary>
+    public void OnPutP1C1()
+    {
+        Log(ErrorLevel.Info, nameof(OnPutP1C1));
+        // TODO: サイコロを配置する
+    }
+
+    /// <summary>
+    /// Player1が2列目にサイコロを配置したときに呼び出される
+    /// </summary>
+    public void OnPutP1C2()
+    {
+        Log(ErrorLevel.Info, nameof(OnPutP1C2));
+        // TODO: サイコロを配置する
+    }
+
+    /// <summary>
+    /// Player1が3列目にサイコロを配置したときに呼び出される
+    /// </summary>
+    public void OnPutP1C3()
+    {
+        Log(ErrorLevel.Info, nameof(OnPutP1C3));
+        // TODO: サイコロを配置する
+    }
+
+    /// <summary>
+    /// Player2が1列目にサイコロを配置したときに呼び出される
+    /// </summary>
+    public void OnPutP2C1()
+    {
+        Log(ErrorLevel.Info, nameof(OnPutP2C1));
+        // TODO: サイコロを配置する
+    }
+
+    /// <summary>
+    /// Player2が2列目にサイコロを配置したときに呼び出される
+    /// </summary>
+    public void OnPutP2C2()
+    {
+        Log(ErrorLevel.Info, nameof(OnPutP2C2));
+        // TODO: サイコロを配置する
+    }
+
+    /// <summary>
+    /// Player2が3列目にサイコロを配置したときに呼び出される
+    /// </summary>
+    public void OnPutP2C3()
+    {
+        Log(ErrorLevel.Info, nameof(OnPutP2C3));
+        // TODO: サイコロを配置する
+    }
 
     #endregion
     //////////////////////////////////////////////////////////////////////////////////////
