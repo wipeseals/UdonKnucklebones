@@ -1020,7 +1020,7 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {player.displayName} {IsOwner}");
 
-            // 初期化必要な場合
+            // 初期化必要な場合. Startで実行されないケース及びNetwork関連が初期化中の対策
             if (Progress == (int)GameProgress.Initial)
             {
                 // 設定完了確認とUIのリセット
