@@ -157,7 +157,7 @@ namespace Wipeseals
 
 
         [SerializeField, Tooltip("CPUがイベントを進める速度")]
-        public float ThinkTimeForCpu = 0.6f;
+        public float ThinkTimeForCpu = 1.0f;
 
 
         [SerializeField, Tooltip("サイコロの目決定用Polling時間")]
@@ -166,8 +166,8 @@ namespace Wipeseals
         [SerializeField, Tooltip("Player1/2間で列番号が正面で一致しない(1,2,3 <-> 3,2,1)ときにtrue")]
         public bool IsColumnIndexCrossed = true;
 
-        [SerializeField, Tooltip("サイコロを転がすときの力の強さ幅")]
-        public float DiceRollForceRange = 0.1f;
+        [SerializeField, Tooltip("サイコロを転がすときの力の強さ。ForceMode.VelovicityChangeで加速度を与える")]
+        public float DiceRollForceRange = 1.0f;
 
         [SerializeField, Tooltip("サイコロ転がしのタイムアウト時間。吹き飛んでしまったときなどの対策")]
         public float DiceRollTimeoutSec = 10.0f;
@@ -1244,7 +1244,7 @@ namespace Wipeseals
                     DiceRollForceRange * UnityEngine.Random.Range(-1, 1),
                     DiceRollForceRange * UnityEngine.Random.Range(-1, 1)
                 ),
-                ForceMode.Impulse
+                ForceMode.VelocityChange
             );
 
             // ステータス更新
@@ -1428,11 +1428,11 @@ namespace Wipeseals
                 // Progress更新した時点でCurrentPlayerの戻り値が変わる。CPUならRollするトリガを与える
                 if (CurrentPlayer == PLAYER1 && Player1Type == (int)PlayerType.CPU)
                 {
-                    SendCustomEventDelayedSeconds(nameof(OnPollingRoll), ThinkTimeForCpu);
+                    SendCustomEventDelayedSeconds(nameof(OnRollDice), ThinkTimeForCpu);
                 }
                 else if (CurrentPlayer == PLAYER2 && Player2Type == (int)PlayerType.CPU)
                 {
-                    SendCustomEventDelayedSeconds(nameof(OnPollingRoll), ThinkTimeForCpu);
+                    SendCustomEventDelayedSeconds(nameof(OnRollDice), ThinkTimeForCpu);
                 }
                 return;
             }

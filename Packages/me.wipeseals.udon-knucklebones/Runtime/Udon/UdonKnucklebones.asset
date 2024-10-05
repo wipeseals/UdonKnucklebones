@@ -375,7 +375,7 @@ MonoBehaviour:
       Data: 25|UnityEngine.TooltipAttribute, UnityEngine.CoreModule
     - Name: tooltip
       Entry: 1
-      Data: "\u30B5\u30A4\u30B3\u30ED\u3092\u8EE2\u304C\u3059\u3068\u304D\u306E\u529B\u306E\u5F37\u3055\u5E45"
+      Data: "\u30B5\u30A4\u30B3\u30ED\u3092\u8EE2\u304C\u3059\u3068\u304D\u306E\u529B\u306E\u5F37\u3055\u3002ForceMode.VelovicityChange\u3067\u52A0\u901F\u5EA6\u3092\u4E0E\u3048\u308B"
     - Name: 
       Entry: 8
       Data: 
