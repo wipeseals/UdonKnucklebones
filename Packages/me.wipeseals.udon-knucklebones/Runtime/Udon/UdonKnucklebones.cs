@@ -117,6 +117,19 @@ namespace Wipeseals
         CPU
     }
 
+    /// <summary>
+    /// Unity Vector3の方向に対応した列挙型
+    /// </summary>
+    public enum FaceDirection : int
+    {
+        Forward = 0, // (  0, +1, +1) Z+ 前
+        Back,        // (  0,  0, -1) Z- 後
+        Left,        // ( -1,  0,  0) X- 左
+        Right,       // ( +1,  0,  0) X+ 右
+        Up,          // (  0, +1,  0) Y+ 上
+        Down         // (  0, -1,  0) Y- 下
+    }
+
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class UdonKnucklebones : UdonSharpBehaviour
     {
@@ -144,19 +157,39 @@ namespace Wipeseals
 
 
         [SerializeField, Tooltip("CPUがイベントを進める速度")]
-        public float ThinkTimeForCpu = 1.0f;
+        public float ThinkTimeForCpu = 0.6f;
 
 
-        [SerializeField, Tooltip("サイコロの目決定用Polling時間。ms")]
+        [SerializeField, Tooltip("サイコロの目決定用Polling時間")]
         public float PollingSecForRolling = 0.5f;
-
-        [SerializeField, Tooltip("サイコロの目決定までにかかる時間。この時間分変わらなければ確定")]
-        public float DecideDiceValueSec = 3.0f;
-
 
         [SerializeField, Tooltip("Player1/2間で列番号が正面で一致しない(1,2,3 <-> 3,2,1)ときにtrue")]
         public bool IsColumnIndexCrossed = true;
 
+        [SerializeField, Tooltip("サイコロを転がすときの力の強さ幅")]
+        public float DiceRollForceRange = 0.1f;
+
+        [SerializeField, Tooltip("サイコロ転がしのタイムアウト時間。吹き飛んでしまったときなどの対策")]
+        public float DiceRollTimeoutSec = 10.0f;
+
+        [Header("Dice Configuration")]
+        [SerializeField, Tooltip("+Z方向のサイコロの目")]
+        public int DiceValueForFront = 1;
+
+        [SerializeField, Tooltip("-Z方向のサイコロの目")]
+        public int DiceValueForBack = 6;
+
+        [SerializeField, Tooltip("+X方向のサイコロの目")]
+        public int DiceValueForRight = 5;
+
+        [SerializeField, Tooltip("-X方向のサイコロの目")]
+        public int DiceValueForLeft = 2;
+
+        [SerializeField, Tooltip("+Y方向のサイコロの目")]
+        public int DiceValueForTop = 4;
+
+        [SerializeField, Tooltip("-Y方向のサイコロの目")]
+        public int DiceValueForBottom = 3;
 
         [Header("Dice Objects")]
         [SerializeField, Tooltip("転がす準備中に見せるサイコロ")]
@@ -468,16 +501,13 @@ namespace Wipeseals
             }
         }
         #endregion
-        #region Private Properties
-        /// <summary>
-        /// 最後に観測したサイコロの目の値
-        /// </summary>
-        private int _lastObservedDiceValue = 0;
+        #region Private Variables
 
         /// <summary>
-        /// _lastObservedDiceValueの値を更新した時刻
+        /// サイコロ転がし始めてからのTimeout検知用
         /// </summary>
-        private float _lastObservedDiceValueTime = 0;
+        float _diceRollStartTime = 0.0f;
+
         #endregion
 
         //////////////////////////////////////////////////////////////////////////////////////
@@ -516,6 +546,11 @@ namespace Wipeseals
         public bool IsGameNotReady => Progress == (int)GameProgress.Initial || Progress == (int)GameProgress.WaitEnterPlayers;
 
         /// <summary>
+        /// ゲーム終了済ならtrue
+        /// </summary>
+        public bool IsGameEnd => (Progress == (int)GameProgress.GameEnd) || (Progress == (int)GameProgress.Aborted);
+
+        /// <summary>
         /// 現在のプレイヤーがCPUならtrue
         /// </summary>
         public bool IsControlledByCpu =>
@@ -547,6 +582,72 @@ namespace Wipeseals
         /// </summary>
         public bool IsMyTurn => (IsMyselfPlayer1 && CurrentPlayer == PLAYER1)
          || (IsMyselfPlayer2 && CurrentPlayer == PLAYER2);
+
+        /// <summary>
+        /// DiceForRollの向きからサイコロの目を取得
+        /// </summary>
+        /// <returns></returns>
+        public int GetRolledDiceValue()
+        {
+            // DiceForRollの向き情報を取得
+            var forward = DiceForRoll.gameObject.transform.forward;
+            var up = DiceForRoll.gameObject.transform.up;
+            var right = DiceForRoll.gameObject.transform.right;
+            var back = -forward;
+            var down = -up;
+            var left = -right;
+
+            // Vector3.upとの角度が最も小さいものが上面
+            // anglesのindexはFaceDirectionと対応
+            var angles = new[] {
+                Vector3.Angle(forward, Vector3.up),
+                Vector3.Angle(back, Vector3.up),
+                Vector3.Angle(left, Vector3.up),
+                Vector3.Angle(right, Vector3.up),
+                Vector3.Angle(up, Vector3.up),
+                Vector3.Angle(down, Vector3.up),
+            };
+
+            // 最小値のインデックスを取得
+            var minIndex = 0;
+            for (var i = 1; i < angles.Length; i++)
+            {
+                if (angles[i] < angles[minIndex])
+                {
+                    minIndex = i;
+                }
+            }
+
+            // インデックスから方向を取得
+            var diceValue = 0;
+            switch ((FaceDirection)minIndex)
+            {
+                case FaceDirection.Forward:
+                    diceValue = DiceValueForFront;
+                    break;
+                case FaceDirection.Back:
+                    diceValue = DiceValueForBack;
+                    break;
+                case FaceDirection.Left:
+                    diceValue = DiceValueForLeft;
+                    break;
+                case FaceDirection.Right:
+                    diceValue = DiceValueForRight;
+                    break;
+                case FaceDirection.Up:
+                    diceValue = DiceValueForTop;
+                    break;
+                case FaceDirection.Down:
+                    diceValue = DiceValueForBottom;
+                    break;
+                default:
+                    Log(ErrorLevel.Error, $"Invalid direction: {minIndex}");
+                    break;
+            }
+
+            Log(ErrorLevel.Info, $"diceValue={diceValue} minIndex={minIndex} angles=[{angles[0]} {angles[1]} {angles[2]} {angles[3]} {angles[4]} {angles[5]}]");
+            return diceValue;
+        }
 
         /// <summary>
         /// Player1のサイコロ列の配列
@@ -983,6 +1084,7 @@ namespace Wipeseals
 
             // 変数初期化して同期
             ResetSyncedProperties(); // state: * -> WaitEnterPlayers
+
             SyncManually();
         }
 
@@ -1113,7 +1215,8 @@ namespace Wipeseals
             // CPUなら自動で進める
             if (IsControlledByCpu)
             {
-                SendCustomEventDelayedSeconds(nameof(OnPollingRoll), ThinkTimeForCpu);
+                // 固定時間だとふりはじめの角度が一致する可能性があるので、ランダムに遅延させる
+                SendCustomEventDelayedSeconds(nameof(OnRollDice), ThinkTimeForCpu * (1.0f + 0.5f * UnityEngine.Random.Range(0.0f, 0.5f)));
             }
         }
 
@@ -1128,7 +1231,21 @@ namespace Wipeseals
                 ChangeOwner();
             }
 
-            // TODO: サイコロふりはじめの処理
+            // WaitPlayer1Roll or WaitPlayer2Roll状態だとAnimationで回しているのでその座標を転写
+            DiceForRoll.SetActive(true);
+            DiceForRoll.transform.position = DiceForReady.transform.position;
+            DiceForRoll.transform.rotation = DiceForReady.transform.rotation;
+            DiceForReady.SetBool("IsReady", false);
+            DiceForReady.gameObject.SetActive(false);
+            // 弾き飛ばす
+            DiceForRoll.gameObject.GetComponent<Rigidbody>().AddForce(
+                new Vector3(
+                    DiceRollForceRange * UnityEngine.Random.Range(-1, 1),
+                    DiceRollForceRange * UnityEngine.Random.Range(-1, 1),
+                    DiceRollForceRange * UnityEngine.Random.Range(-1, 1)
+                ),
+                ForceMode.Impulse
+            );
 
             // ステータス更新
             if (CurrentPlayer == PLAYER1)
@@ -1140,9 +1257,10 @@ namespace Wipeseals
                 Progress = (int)GameProgress.Player2Rolling;
             }
 
+            // 吹き飛び対策
+            _diceRollStartTime = Time.time;
+
             // サイコロの見張り役は自分だけがやれば良い
-            _lastObservedDiceValue = 0;
-            _lastObservedDiceValueTime = Time.time;
             SendCustomEventDelayedSeconds(nameof(OnPollingRoll), PollingSecForRolling);
         }
 
@@ -1151,7 +1269,7 @@ namespace Wipeseals
         /// </summary>
         void PollingRoll()
         {
-            Log(ErrorLevel.Info, $"{nameof(PollingRoll)} Progress={Progress} CurrentPlayer={CurrentPlayer} _lastObservedDiceValue={_lastObservedDiceValue} _lastObservedDiceValueTime={_lastObservedDiceValueTime}");
+            Log(ErrorLevel.Info, $"{nameof(PollingRoll)} Progress={Progress} CurrentPlayer={CurrentPlayer}");
 
             // Ownerのみが変更できる。Ownerでなければ取得
             if (!IsOwner)
@@ -1159,25 +1277,27 @@ namespace Wipeseals
                 ChangeOwner();
             }
 
-            // TODO: 現在の目をDice objectの向きから判断。仮の乱数値を確定しておく
-            var diceValue = (_lastObservedDiceValue != 0) ? _lastObservedDiceValue : UnityEngine.Random.Range(DiceArrayBits.MIN_DICE_VALUE, DiceArrayBits.MAX_DICE_VALUE + 1);
-
-            // サイコロの目が変わったら、その値をセット
-            if ((_lastObservedDiceValue == 0) || (_lastObservedDiceValue != diceValue))
+            var isTimeout = (Time.time - _diceRollStartTime) > DiceRollTimeoutSec;
+            if (isTimeout)
             {
-                _lastObservedDiceValue = diceValue;
-                _lastObservedDiceValueTime = Time.time;
+                // タイムアウトした場合は現在の向きを取得
+                Log(ErrorLevel.Warning, $"{nameof(PollingRoll)}: Timeout!");
+            }
+            else
+            {
+                // Rigidbodyが止まっていない場合は再度ポーリング
+                if (!DiceForRoll.gameObject.GetComponent<Rigidbody>().IsSleeping())
+                {
+                    SendCustomEventDelayedSeconds(nameof(OnPollingRoll), PollingSecForRolling);
+                    return;
+                }
             }
 
-            // 一定時間経過する前なら、再度ポーリング
-            if (Time.time - _lastObservedDiceValueTime < PollingSecForRolling)
-            {
-                SendCustomEventDelayedSeconds(nameof(OnPollingRoll), PollingSecForRolling);
-                return;
-            }
+            // Timeout時間クリア
+            _diceRollStartTime = 0.0f;
 
             // サイコロの目が決定したら、その値をセットしPlayerに配置先を選ばせる
-            RolledDiceValue = _lastObservedDiceValue;
+            RolledDiceValue = GetRolledDiceValue();
             if (CurrentPlayer == PLAYER1)
             {
                 Progress = (int)GameProgress.WaitPlayer1Put;
@@ -1186,10 +1306,6 @@ namespace Wipeseals
             {
                 Progress = (int)GameProgress.WaitPlayer2Put;
             }
-
-            // ローカル変数クリア
-            _lastObservedDiceValue = 0;
-            _lastObservedDiceValueTime = 0;
 
             Log(ErrorLevel.Info, $"{nameof(PollingRoll)}: RolledDiceValue={RolledDiceValue} Player={CurrentPlayer}");
             SyncManually();
@@ -1442,6 +1558,7 @@ namespace Wipeseals
             {
                 DiceForRoll.SetActive(false);
                 DiceForRoll.transform.position = DiceForReady.transform.position;
+                DiceForRoll.transform.rotation = DiceForReady.transform.rotation;
             }
             else
             {
@@ -1572,9 +1689,12 @@ namespace Wipeseals
             Player2EntryButton.interactable = (Player2PlayerId == 0);
             Player2CPUEntryButton.interactable = (Player2PlayerId == 0);
 
-            // リセット/リマッチボタンはいたずら防止目的で設定。CPUだけの試合、もしくはゲーム開始前なら操作可能。それ以外はPlayerのみ押せる
-            ResetButton.interactable = IsCpuOnly || IsGameNotReady || IsJoinedMyself;
-            RematchButton.interactable = IsCpuOnly || IsGameNotReady || IsJoinedMyself;
+            // リセットはいたずら防止目的で設定。CPUだけの試合、もしくはゲーム開始前なら操作可能。それ以外はPlayerのみ押せる
+            var isResetable = IsCpuOnly || IsGameNotReady || IsJoinedMyself;
+            ResetButton.interactable = isResetable;
+            // リマッチはリセットの条件に加え、ゲーム終了後のみ押せる
+            // 途中で最初に戻って流れ出す、もしくはPlayer未設定のまま開始される対策
+            RematchButton.interactable = isResetable && IsGameEnd;
         }
 
         /// <summary>

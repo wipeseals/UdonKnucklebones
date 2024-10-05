@@ -3570,7 +3570,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!1 &914180965
 GameObject:
   m_ObjectHideFlags: 0
@@ -4150,10 +4150,17 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1132024059}
   IsDebug: 1
-  ThinkTimeForCpu: 1
+  ThinkTimeForCpu: 0.6
   PollingSecForRolling: 0.5
-  DecideDiceValueSec: 3
   IsColumnIndexCrossed: 1
+  DiceRollForceRange: 0.1
+  DiceRollTimeoutSec: 10
+  DiceValueForFront: 1
+  DiceValueForBack: 6
+  DiceValueForRight: 5
+  DiceValueForLeft: 2
+  DiceValueForTop: 3
+  DiceValueForBottom: 4
   DiceForReady: {fileID: 709215496}
   DiceForRoll: {fileID: 890692803}
   DiceRollCollider: {fileID: 1224640904}
@@ -4762,12 +4769,12 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.23803735, y: 0.32070494, z: 0.40187547}
-  m_Center: {x: -0.251015, y: 0.14466572, z: -0.0013973862}
+  m_Size: {x: 0.26728112, y: 0.32070494, z: 0.45678985}
+  m_Center: {x: -0.24844274, y: 0.14466572, z: 0.013137639}
 --- !u!114 &1224640903
 MonoBehaviour:
   m_ObjectHideFlags: 2
