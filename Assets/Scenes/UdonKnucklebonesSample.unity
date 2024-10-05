@@ -4164,7 +4164,7 @@ MonoBehaviour:
   Player1Col1DiceArray:
   - {fileID: 1676321876}
   - {fileID: 373787184}
-  - {fileID: 373787184}
+  - {fileID: 1151187828}
   Player1Col2DiceArray:
   - {fileID: 1016629493}
   - {fileID: 212397730}
