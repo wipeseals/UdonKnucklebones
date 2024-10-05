@@ -96,6 +96,10 @@ namespace Wipeseals
         /// ゲーム中断
         /// </summary>
         Aborted,
+        /// <summary>
+        /// 設定エラー
+        /// </summary>
+        ConfigurationError,
     }
 
     /// <summary>
@@ -980,7 +984,7 @@ namespace Wipeseals
                 return;
             }
             // 変数初期化して同期
-            ResetSyncedProperties(); // state: * -> Reset
+            ResetSyncedProperties(); // state: * -> WaitEnterPlayer1
             SyncManually();
         }
 
@@ -1018,7 +1022,7 @@ namespace Wipeseals
 
         public override void OnPlayerJoined(VRCPlayerApi player)
         {
-            Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {player.displayName} {IsOwner}");
+            Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {player?.displayName} {IsOwner}");
 
             // 初期化必要な場合. Startで実行されないケース及びNetwork関連が初期化中の対策
             if (Progress == (int)GameProgress.Initial)
@@ -1027,6 +1031,10 @@ namespace Wipeseals
                 if (!IsValidInspectorSettings(out var msg))
                 {
                     Log(ErrorLevel.Error, msg);
+
+                    this.Progress = (int)GameProgress.ConfigurationError;
+                    SyncManually();
+
                     return;
                 }
                 ResetAllUIState();
@@ -1080,6 +1088,12 @@ namespace Wipeseals
         public void OnUIUpdate()
         {
             Log(ErrorLevel.Info, $"{nameof(OnUIUpdate)}");
+
+            // Configuration Errorの場合、使えないUIがある場合があるので何もしない
+            if (Progress == (int)GameProgress.ConfigurationError)
+            {
+                return;
+            }
 
             // 頭上で回転するサイコロは、Roll待ちのケースでのみ表示。Userが触れるのはここだけ
             // Unity DebugだとNetworking.LocalPlayerが取得できないので無視
@@ -1201,6 +1215,10 @@ namespace Wipeseals
                 case GameProgress.Aborted:
                     SystemText.text = "Game Aborted!";
                     break;
+                case GameProgress.ConfigurationError:
+                    SystemText.text = "Configuration Error!";
+                    break;
+
                 default:
                     break;
             }
