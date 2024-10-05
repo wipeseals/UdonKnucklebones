@@ -1,0 +1,1338 @@
+﻿
+using UdonSharp;
+using UnityEngine;
+using UnityEngine.UI;
+using VRC.SDKBase;
+using VRC.Udon;
+using TMPro;
+using System;
+
+namespace Wipeseals
+{
+    /// <summary>
+    /// エラーレベル
+    /// </summary>
+    public enum ErrorLevel : int
+    {
+        Info,
+        Warning,
+        Error
+    };
+
+    /// <summary>
+    /// ゲームの勝敗状態
+    /// </summary>
+    public enum GameJudge : int
+    {
+        Player1Win,
+        Player2Win,
+        Draw,
+        Continue
+    }
+
+    /// <summary>
+    /// ゲームの状態
+    /// </summary>
+    public enum GameProgress : int
+    {
+        /// <summary>
+        /// 初期状態。IsActive=falseで開始されたケースでOnEnable/OnDisable/Startが呼ばれない
+        /// OnPlayerJoinedで初期化する
+        /// </summary>
+        Initial = 0,
+        /// <summary>
+        /// Player1の参加待ち
+        /// </summary>
+        WaitEnterPlayer1,
+        /// <summary>
+        /// Player2の参加待ち
+        /// </summary>
+        WaitEnterPlayer2,
+        /// <summary>
+        /// ゲーム開始。再戦用に設けた状態
+        /// </summary>
+        GameStart,
+
+        /// <summary>
+        /// Player1のサイコロ転がし待ち
+        /// </summary>
+        WaitPlayer1Roll,
+        /// <summary>
+        /// Player1のサイコロ転がし中
+        /// </summary>
+        Player1Rolling,
+        /// <summary>
+        /// Player1のサイコロ配置待ち
+        /// </summary>
+        WaitPlayer1Put,
+        /// <summary>
+        /// Player2のサイコロ計算待ち。ついでにサイコロの前詰めアニメーションも行う
+        /// </summary>
+        WaitPlayer1Calc,
+
+        /// <summary>
+        /// Player2のサイコロ転がし待ち
+        /// </summary>
+        WaitPlayer2Roll,
+        /// <summary>
+        /// Player1のサイコロ転がし中
+        /// </summary>
+        Player2Rolling,
+        /// <summary>
+        /// Player2のサイコロ配置待ち
+        /// </summary>
+        WaitPlayer2Put,
+        /// <summary>
+        /// Player2のサイコロ計算待ち。ついでにサイコロの前詰めアニメーションも行う
+        /// 次の遷移先はWaitPlayer1Roll or GameEnd
+        /// </summary>
+        WaitPlayer2Calc,
+
+        /// <summary>
+        /// ゲーム終了
+        /// </summary>
+        GameEnd,
+        /// <summary>
+        /// ゲーム中断
+        /// </summary>
+        Aborted,
+    }
+
+    /// <summary>
+    /// Playerの種類
+    /// </summary>
+    public enum PlayerType : int
+    {
+        /// <summary>
+        /// 無効
+        /// </summary>
+        Invalid = 0,
+        /// <summary>
+        /// 人間
+        /// </summary>
+        Human,
+        /// <summary>
+        /// CPU
+        /// </summary>
+        CPU
+    }
+
+    [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
+    public class UdonKnucklebones : UdonSharpBehaviour
+    {
+        //////////////////////////////////////////////////////////////////////////////////////
+        #region Variables
+
+        #region Constants
+        /// <summary>
+        /// Player1
+        /// </summary>
+        public const int PLAYER1 = 0;
+
+        /// <summary>
+        /// Player2
+        /// </summary>
+        public const int PLAYER2 = 1;
+
+        #endregion
+        #region Properties
+
+        [Header("Udon Knucklebones")]
+
+        [Header("for Debugging")]
+        [SerializeField, Tooltip("デバッグモード")]
+        public bool IsDebug = true;
+
+        [Header("Dice Objects")]
+        [SerializeField, Tooltip("転がす準備中に見せるサイコロ")]
+        public Animator DiceForReady = null;
+
+        [SerializeField, Tooltip("実際に転がるサイコロ")]
+        public GameObject DiceForRoll = null;
+
+        [SerializeField, Tooltip("サイコロを転がす際にUseするCollider")]
+        public EventEmitter DiceRollCollider = null;
+
+        [Header("Selection Objects")]
+        [SerializeField, Tooltip("Player1がサイコロを配置するときに列選択するためのCollider")]
+        public EventEmitter[] Player1ColumnColliders = null;
+
+        [SerializeField, Tooltip("Player2がサイコロを配置するときに列選択するためのCollider")]
+        public EventEmitter[] Player2ColumnColliders = null;
+
+        [Header("Dice Arrays")]
+        [SerializeField, Tooltip("Player1の1列目のサイコロ格納用")]
+        public Animator[] Player1Col1DiceArray = null;
+
+        [SerializeField, Tooltip("Player1の2列目のサイコロ格納用")]
+        public Animator[] Player1Col2DiceArray = null;
+
+        [SerializeField, Tooltip("Player1の3列目のサイコロ格納用")]
+        public Animator[] Player1Col3DiceArray = null;
+
+        [SerializeField, Tooltip("Player2の1列目のサイコロ格納用")]
+        public Animator[] Player2Col1DiceArray = null;
+
+        [SerializeField, Tooltip("Player2の2列目のサイコロ格納用")]
+        public Animator[] Player2Col2DiceArray = null;
+
+        [SerializeField, Tooltip("Player2の3列目のサイコロ格納用")]
+        public Animator[] Player2Col3DiceArray = null;
+
+        [Header("Score Texts")]
+        [SerializeField, Tooltip("Player1の各列のスコア表示用")]
+        public TextMeshProUGUI[] Player1ColumnScoreTexts = null;
+
+        [SerializeField, Tooltip("Player2の各列のスコア表示用")]
+        public TextMeshProUGUI[] Player2ColumnScoreTexts = null;
+
+        [Header("Info Texts")]
+        [SerializeField, Tooltip("Player1のメインスコア表示用")]
+        public TextMeshProUGUI Player1MainScoreText = null;
+
+        [SerializeField, Tooltip("Player2のメインスコア表示用")]
+        public TextMeshProUGUI Player2MainScoreText = null;
+
+        [SerializeField, Tooltip("現在のターン表示用")]
+        public TextMeshProUGUI TurnText = null;
+
+        [SerializeField, Tooltip("システムメッセージ表示用")]
+        public TextMeshProUGUI SystemText = null;
+
+        [Header("Buttons")]
+        [SerializeField, Tooltip("Player1参加ボタン")]
+        public Button Player1EntryButton = null;
+
+        [SerializeField, Tooltip("Player1 CPU参加ボタン")]
+        public Button Player1CPUEntryButton = null;
+
+        [SerializeField, Tooltip("Player2参加ボタン")]
+        public Button Player2EntryButton = null;
+
+        [SerializeField, Tooltip("Player2 CPU参加ボタン")]
+        public Button Player2CPUEntryButton = null;
+
+        [SerializeField, Tooltip("リセットボタン")]
+        public Button ResetButton = null;
+
+        [SerializeField, Tooltip("リマッチボタン")]
+        public Button RematchButton = null;
+
+        #endregion
+        #region Private Properties
+
+        #endregion
+        #region Synced Properties
+
+        [Header("Synced Properties")]
+
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Progress))]
+        public int _progress = 0;  // (int)Progress.Reset;
+
+        /// <summary>
+        /// ゲームの進行状態
+        /// </summary>
+        public int Progress
+        {
+            get => _progress;
+            set
+            {
+                _progress = (int)value;
+            }
+        }
+
+        /// <summary>
+        /// システムメッセージ
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(SystemMessage))]
+        public string _systemMessage = "";
+
+        /// <summary>
+        /// システムメッセージ
+        /// </summary>
+        public string SystemMessage
+        {
+            get => _systemMessage;
+            set
+            {
+                _systemMessage = value;
+            }
+        }
+
+        /// <summary>
+        /// Player1のタイプ
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1Type))]
+        public int _player1Type = 0;  // (int)PlayerType.Invalid;
+
+        /// <summary>
+        /// Player1のタイプ
+        /// </summary>
+        public int Player1Type
+        {
+            get => _player1Type;
+            set
+            {
+                _player1Type = value;
+            }
+        }
+
+        /// <summary>
+        /// Player2のタイプ
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2Type))]
+        public int _player2Type = 0;  // (int)PlayerType.Invalid;
+
+        /// <summary>
+        /// Player2のタイプ
+        /// </summary>
+        public int Player2Type
+        {
+            get => (int)_player2Type;
+            set
+            {
+                _player2Type = (int)value;
+            }
+        }
+
+        /// <summary>
+        /// サイコロの値. 0は未転がし
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(RolledDiceValue))]
+        public int _rolledDiceValue = 0;
+
+        /// <summary>
+        /// サイコロの値. 0は未転がし
+        /// </summary>
+        public int RolledDiceValue
+        {
+            get => _rolledDiceValue;
+            set
+            {
+                _rolledDiceValue = value;
+            }
+        }
+
+        /// <summary>
+        /// Player1の名前
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1DisplayName))]
+        public string _player1DisplayName = "";
+
+        /// <summary>
+        /// Player1の名前
+        /// </summary>
+        public string Player1DisplayName
+        {
+            get => _player1DisplayName;
+            set
+            {
+                _player1DisplayName = value;
+            }
+        }
+
+        /// <summary>
+        /// Player2の名前
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2DisplayName))]
+        public string _player2DisplayName = "";
+
+        /// <summary>
+        /// Player2の名前
+        /// </summary>
+        public string Player2DisplayName
+        {
+            get => _player2DisplayName;
+            set
+            {
+                _player2DisplayName = value;
+            }
+        }
+
+        /// <summary>
+        /// Player1のPlayerId
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1PlayerId))]
+        public int _player1PlayerId = 0;
+
+        /// <summary>
+        /// Player1のPlayerId
+        /// </summary>
+        public int Player1PlayerId
+        {
+            get => _player1PlayerId;
+            set
+            {
+                _player1PlayerId = value;
+            }
+        }
+
+        /// <summary>
+        /// Player2のPlayerId
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2PlayerId))]
+        public int _player2PlayerId = 0;
+
+        /// <summary>
+        /// Player2のPlayerId
+        /// </summary>
+        public int Player2PlayerId
+        {
+            get => _player2PlayerId;
+            set
+            {
+                _player2PlayerId = value;
+            }
+        }
+
+        /// <summary>
+        /// 現在のターン数
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(CurrentTurn))]
+        public int _currentTurn = 1;
+
+        /// <summary>
+        /// 現在のターン数
+        /// </summary>
+        public int CurrentTurn
+        {
+            get => _currentTurn;
+            set
+            {
+                _currentTurn = value;
+            }
+        }
+
+        /// <summary>
+        /// Player1のサイコロ配置(生データ)
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1DiceArrayBits))]
+        public ulong _player1DiceArrayBits = 0;
+
+        /// <summary>
+        /// Player1のサイコロ配置(生データ)
+        /// </summary>
+        public ulong Player1DiceArrayBits
+        {
+            get => _player1DiceArrayBits;
+            set
+            {
+                _player1DiceArrayBits = value;
+            }
+        }
+
+        /// <summary>
+        /// Player2のサイコロ配置(生データ)
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2DiceArrayBits))]
+        public ulong _player2DiceArrayBits = 0;
+
+        /// <summary>
+        /// Player2のサイコロ配置(生データ)
+        /// </summary>
+        public ulong Player2DiceArrayBits
+        {
+            get => _player2DiceArrayBits;
+            set
+            {
+                _player2DiceArrayBits = value;
+            }
+        }
+        #endregion
+        #endregion
+
+        //////////////////////////////////////////////////////////////////////////////////////
+        #region Synced Properties Accessor
+
+        /// <summary>
+        /// 現在のプレイヤー (0 or 1)
+        /// </summary>
+        public int CurrentPlayer
+        {
+            get
+            {
+                switch (Progress)
+                {
+                    case (int)GameProgress.WaitPlayer1Roll:
+                    case (int)GameProgress.Player1Rolling:
+                    case (int)GameProgress.WaitPlayer1Put:
+                    case (int)GameProgress.WaitPlayer1Calc:
+                        return PLAYER1;
+                    case (int)GameProgress.WaitPlayer2Roll:
+                    case (int)GameProgress.Player2Rolling:
+                    case (int)GameProgress.WaitPlayer2Put:
+                    case (int)GameProgress.WaitPlayer2Calc:
+                        return PLAYER2;
+                    default:
+                        Log(ErrorLevel.Error, $"Invalid Progress: {Progress}");
+                        return PLAYER1;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Player1のサイコロ列の配列
+        /// </summary>
+        public Animator[][] Player1ColDiceArrayList => new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray };
+        /// <summary>
+        /// Player2のサイコロ列の配列
+        /// </summary>
+        public Animator[][] Player2ColDiceArrayList => new[] { Player2Col1DiceArray, Player2Col2DiceArray, Player2Col3DiceArray };
+
+        /// <summary>
+        /// Unity Debug時かどうか
+        /// </summary>
+        public bool IsUnityDebug => Networking.LocalPlayer == null;
+
+        /// <summary>
+        /// Ownerだったらtrueを返す
+        /// </summary>
+        public bool IsOwner
+        {
+            get
+            {
+                var player = Networking.LocalPlayer;
+                // debug時などは取得できないのでOwner扱いにする
+                if (player == null)
+                {
+                    return true;
+                }
+                return player.IsOwner(this.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Owner取得
+        /// </summary>
+        public void ChangeOwner()
+        {
+            Log(ErrorLevel.Info, $"{nameof(ChangeOwner)}");
+
+            // Ownerだったら何もしない
+            if (IsOwner) return;
+
+            // Unity debug時などはLocalPlayerが取得できない
+            var player = Networking.LocalPlayer;
+            if (player == null) return;
+
+            Networking.SetOwner(player, this.gameObject);
+        }
+
+        /// <summary>
+        /// Synced Propertiesを手動で更新する
+        /// </summary>
+        public void SyncManually()
+        {
+            Log(ErrorLevel.Info, $"{nameof(SyncManually)}");
+
+            // 自分用
+            OnUIUpdate();
+            // 全員に送信
+            RequestSerialization();
+            SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnUIUpdate));
+
+        }
+
+        /// <summary>
+        /// 動機変数を全て初期化する
+        /// </summary>
+        void ResetSyncedProperties()
+        {
+            Log(ErrorLevel.Info, $"{nameof(ResetSyncedProperties)}: IsOwner={IsOwner}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            // Accessor経由で変更してからRequestSerialization
+            Progress = (int)GameProgress.WaitEnterPlayer1;
+            SystemMessage = "Waiting for Player1";
+            Player1Type = (int)PlayerType.Invalid;
+            Player2Type = (int)PlayerType.Invalid;
+            RolledDiceValue = 0;
+            Player1DisplayName = "";
+            Player2DisplayName = "";
+            Player1PlayerId = 0;
+            Player2PlayerId = 0;
+            CurrentTurn = 1;
+            Player1DiceArrayBits = 0;
+            Player2DiceArrayBits = 0;
+        }
+
+        /// <summary>
+        /// Progress/SystemMsg を更新する
+        /// </summary>
+        /// <param name="progress"></param>
+        /// <param name="msg"></param>
+        void UpdateProgressWithMsg(GameProgress progress, string msg)
+        {
+            Log(ErrorLevel.Info, $"{nameof(UpdateProgressWithMsg)}: {progress}, {msg}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            // Accessor経由で変更してからRequestSerialization
+            Progress = (int)progress;
+            SystemText.text = msg;
+            SyncManually();
+        }
+        #endregion
+
+        #region DiceArrayBits Accessor
+
+        /// <summary>
+        /// プレイヤーのサイコロ配置を取得
+        /// </summary>
+        ulong GetDiceArrayBits(int player) => player == 0 ? Player1DiceArrayBits : Player2DiceArrayBits;
+
+        /// <summary>
+        /// プレイヤーのサイコロ配置を更新
+        /// </summary>
+        void SetDiceArrayBits(int player, ulong bits)
+        {
+            Log(ErrorLevel.Info, $"{nameof(SetDiceArrayBits)}: player={player}, bits={bits:016X}");
+
+            if (player == PLAYER1)
+            {
+                Player1DiceArrayBits = bits;
+            }
+            else if (player == PLAYER2)
+            {
+                Player2DiceArrayBits = bits;
+            }
+            else
+            {
+                Log(ErrorLevel.Error, $"Invalid player number: {player}");
+            }
+        }
+
+        void PutDice(int player, int col, int value, bool isIndexCross = true)
+        {
+            Log(ErrorLevel.Info, $"{nameof(PutDice)}: player={player}, col={col}, value={value}, isIndexCross={isIndexCross}");
+
+            // 現在のターンのプレイヤーか確認してから
+            if (player != CurrentPlayer)
+            {
+                Log(ErrorLevel.Warning, $"Invalid player number: {player}");
+                return;
+            }
+
+            var srcBits = GetDiceArrayBits(player);
+            // 指定された列の末尾に配置
+            var rowIndex = srcBits.GetColumnCount(col);
+            if (rowIndex >= DiceArrayBits.NUM_ROWS)
+            {
+                Log(ErrorLevel.Warning, $"Cannot place dice to column {col}");
+                return;
+            }
+            SetDiceArrayBits(player, srcBits.PutDice(col, rowIndex, value));
+
+            // 相手の列に同じ値がある場合、削除する
+            var opponentPlayer = player == 0 ? 1 : 0;
+            var opponentColumn = isIndexCross ? (DiceArrayBits.NUM_COLUMNS - col - 1) : col;// 列のindexは向かい合っている場合、DiceArrayBits.NUM_COLUMNS - col - 1で対向している列を取得
+
+            // 相手の列から配置した値を削除
+            SetDiceArrayBits(opponentPlayer, GetDiceArrayBits(opponentPlayer).RemoveByValue(opponentColumn, value));
+        }
+
+        /// <summary>
+        /// ゲームの勝敗を取得
+        /// </summary>
+        GameJudge CalcGameJudge(int currentTurnPlayer)
+        {
+            // 現在のターンのプレイヤーが配置後、置けなくなった時点で終了
+            if (!GetDiceArrayBits(currentTurnPlayer).IsFull())
+            {
+                // まだ置ける
+                return GameJudge.Continue;
+            }
+
+            var player1Score = GetDiceArrayBits(PLAYER1).GetTotalScore();
+            var player2Score = GetDiceArrayBits(PLAYER2).GetTotalScore();
+
+            if (player1Score > player2Score)
+            {
+                return GameJudge.Player1Win;
+            }
+            else if (player1Score < player2Score)
+            {
+                return GameJudge.Player2Win;
+            }
+            else
+            {
+                return GameJudge.Draw;
+            }
+        }
+
+        #endregion
+
+        #region UI Utility
+
+        /// <summary>
+        /// Inspectorの設定が完了しているか確認する
+        /// </summary>
+        /// <param name="msg"></param>
+        /// <returns></returns>
+        bool IsValidInspectorSettings(out string msg)
+        {
+            Log(ErrorLevel.Info, $"{nameof(IsValidInspectorSettings)}");
+
+            // Check if all required fields are set
+            if (DiceForReady == null)
+            {
+                msg = $"{nameof(DiceForReady)} is not set!";
+                return false;
+            }
+            if (DiceForRoll == null)
+            {
+                msg = $"{nameof(DiceForRoll)} is not set!";
+                return false;
+            }
+            if (DiceRollCollider == null)
+            {
+                msg = $"{nameof(DiceRollCollider)} is not set!";
+                return false;
+            }
+            if (Player1ColumnColliders == null || Player1ColumnColliders.Length == 0)
+            {
+                msg = $"{nameof(Player1ColumnColliders)} is not set!";
+                return false;
+            }
+            if (Player2ColumnColliders == null || Player2ColumnColliders.Length == 0)
+            {
+                msg = $"{nameof(Player2ColumnColliders)} is not set!";
+                return false;
+            }
+            if (Player1Col1DiceArray == null || Player1Col1DiceArray.Length == 0)
+            {
+                msg = $"{nameof(Player1Col1DiceArray)} is not set!";
+                return false;
+            }
+            if (Player1Col2DiceArray == null || Player1Col2DiceArray.Length == 0)
+            {
+                msg = $"{nameof(Player1Col2DiceArray)} is not set!";
+                return false;
+            }
+            if (Player1Col3DiceArray == null || Player1Col3DiceArray.Length == 0)
+            {
+                msg = $"{nameof(Player1Col3DiceArray)} is not set!";
+                return false;
+            }
+            if (Player2Col1DiceArray == null || Player2Col1DiceArray.Length == 0)
+            {
+                msg = $"{nameof(Player2Col1DiceArray)} is not set!";
+                return false;
+            }
+            if (Player2Col2DiceArray == null || Player2Col2DiceArray.Length == 0)
+            {
+                msg = $"{nameof(Player2Col2DiceArray)} is not set!";
+                return false;
+            }
+            if (Player2Col3DiceArray == null || Player2Col3DiceArray.Length == 0)
+            {
+                msg = $"{nameof(Player2Col3DiceArray)} is not set!";
+                return false;
+            }
+            if (Player1ColumnScoreTexts == null || Player1ColumnScoreTexts.Length == 0)
+            {
+                msg = $"{nameof(Player1ColumnScoreTexts)} is not set!";
+                return false;
+            }
+            if (Player2ColumnScoreTexts == null || Player2ColumnScoreTexts.Length == 0)
+            {
+                msg = $"{nameof(Player2ColumnScoreTexts)} is not set!";
+                return false;
+            }
+            if (Player1MainScoreText == null)
+            {
+                msg = $"{nameof(Player1MainScoreText)} is not set!";
+                return false;
+            }
+            if (Player2MainScoreText == null)
+            {
+                msg = $"{nameof(Player2MainScoreText)} is not set!";
+                return false;
+            }
+            if (TurnText == null)
+            {
+                msg = $"{nameof(TurnText)} is not set!";
+                return false;
+            }
+            if (SystemText == null)
+            {
+                msg = $"{nameof(SystemText)} is not set!";
+                return false;
+            }
+            if (Player1EntryButton == null)
+            {
+                msg = $"{nameof(Player1EntryButton)} is not set!";
+                return false;
+            }
+            if (Player1CPUEntryButton == null)
+            {
+                msg = $"{nameof(Player1CPUEntryButton)} is not set!";
+                return false;
+            }
+            if (Player2EntryButton == null)
+            {
+                msg = $"{nameof(Player2EntryButton)} is not set!";
+                return false;
+            }
+            if (Player2CPUEntryButton == null)
+            {
+                msg = $"{nameof(Player2CPUEntryButton)} is not set!";
+                return false;
+            }
+            if (ResetButton == null)
+            {
+                msg = $"{nameof(ResetButton)} is not set!";
+                return false;
+            }
+            if (RematchButton == null)
+            {
+                msg = $"{nameof(RematchButton)} is not set!";
+                return false;
+            }
+
+            // Check if all required fields in the dice arrays are set
+            if (Player1ColumnColliders.Length != DiceArrayBits.NUM_COLUMNS)
+            {
+                msg = $"{nameof(Player1ColumnColliders)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
+                return false;
+            }
+            if (Player2ColumnColliders.Length != DiceArrayBits.NUM_COLUMNS)
+            {
+                msg = $"{nameof(Player2ColumnColliders)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
+                return false;
+            }
+            if (Player1Col1DiceArray.Length != DiceArrayBits.NUM_ROWS)
+            {
+                msg = $"{nameof(Player1Col1DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
+                return false;
+            }
+            if (Player1Col2DiceArray.Length != DiceArrayBits.NUM_ROWS)
+            {
+                msg = $"{nameof(Player1Col2DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
+                return false;
+            }
+            if (Player1Col3DiceArray.Length != DiceArrayBits.NUM_ROWS)
+            {
+                msg = $"{nameof(Player1Col3DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
+                return false;
+            }
+            if (Player2Col1DiceArray.Length != DiceArrayBits.NUM_ROWS)
+            {
+                msg = $"{nameof(Player2Col1DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
+                return false;
+            }
+            if (Player2Col2DiceArray.Length != DiceArrayBits.NUM_ROWS)
+            {
+                msg = $"{nameof(Player2Col2DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
+                return false;
+            }
+            if (Player2Col3DiceArray.Length != DiceArrayBits.NUM_ROWS)
+            {
+                msg = $"{nameof(Player2Col3DiceArray)} must have {DiceArrayBits.NUM_ROWS} elements!";
+                return false;
+            }
+            if (Player1ColumnScoreTexts.Length != DiceArrayBits.NUM_COLUMNS)
+            {
+                msg = $"{nameof(Player1ColumnScoreTexts)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
+                return false;
+            }
+            if (Player2ColumnScoreTexts.Length != DiceArrayBits.NUM_COLUMNS)
+            {
+                msg = $"{nameof(Player2ColumnScoreTexts)} must have {DiceArrayBits.NUM_COLUMNS} elements!";
+                return false;
+            }
+
+
+            // All checks passed
+            msg = "Setup is complete!";
+            return true;
+        }
+
+        /// <summary>
+        /// すべての状態をリセットする
+        /// </summary>
+        void ResetAllUIState()
+        {
+            Log(ErrorLevel.Info, $"{nameof(ResetAllUIState)}");
+
+            // DiceForReadyのAnimationをリセット
+            DiceForReady.gameObject.SetActive(true);
+            DiceForReady.SetBool("IsReady", true);
+
+            // DiceRollColliderを無効化
+            DiceRollCollider.IsEventSendable = false;
+
+            // DiceForRollの位置をリセットして非表示で待機状態にする
+            DiceForRoll.transform.position = DiceForReady.transform.position;
+            DiceForRoll.SetActive(false);
+
+            // Player1 Column Collidersを無効化
+            foreach (var collider in Player1ColumnColliders)
+            {
+                collider.IsEventSendable = false;
+            }
+
+            // Player2 Column Collidersを無効化
+            foreach (var collider in Player2ColumnColliders)
+            {
+                collider.IsEventSendable = false;
+            }
+
+            // Player1のサイコロをAnimation Controllerから非表示に設定する
+            foreach (var diceArray in new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray })
+            {
+                foreach (var dice in diceArray)
+                {
+                    dice.gameObject.SetActive(true);
+                    dice.SetInteger("Number", 0);
+                    dice.SetInteger("RefCount", 0);
+                }
+            }
+            // Player2のサイコロをAnimation Controllerから非表示に設定する
+            foreach (var diceArray in new[] { Player2Col1DiceArray, Player2Col2DiceArray, Player2Col3DiceArray })
+            {
+                foreach (var dice in diceArray)
+                {
+                    dice.gameObject.SetActive(true);
+                    dice.SetInteger("Number", 0);
+                    dice.SetInteger("RefCount", 0);
+                }
+            }
+
+            // Player1のスコアをリセット
+            foreach (var scoreText in Player1ColumnScoreTexts)
+            {
+                scoreText.text = "00";
+            }
+            Player1MainScoreText.text = "00";
+
+            // Player2のスコアをリセット
+            foreach (var scoreText in Player2ColumnScoreTexts)
+            {
+                scoreText.text = "00";
+            }
+            Player2MainScoreText.text = "00";
+
+            // ターン表示をリセット
+            TurnText.text = "01";
+
+            // システムメッセージをリセット
+            SystemText.text = "Ready";
+
+            // Player1のボタンを有効化
+            Player1EntryButton.interactable = true;
+            Player1CPUEntryButton.interactable = true;
+
+            // Player2のボタンを有効化
+            Player2EntryButton.interactable = true;
+            Player2CPUEntryButton.interactable = true;
+
+            // リセットボタンを無効化
+            ResetButton.interactable = false;
+            RematchButton.interactable = false;
+        }
+
+        /// <summary>
+        /// Prints a message to the console
+        /// </summary>
+        /// <param name="msg"></param>
+        void Log(ErrorLevel level, string msg)
+        {
+            switch (level)
+            {
+                case ErrorLevel.Info:
+                    if (IsDebug)
+                    {
+                        Debug.Log($"[UdonKnucklebones] {msg}");
+                    }
+                    break;
+                case ErrorLevel.Warning:
+                    Debug.LogWarning($"[UdonKnucklebones] {msg}");
+                    break;
+                case ErrorLevel.Error:
+                    Debug.LogError($"[UdonKnucklebones] {msg}");
+                    break;
+            }
+        }
+        #endregion
+
+        #region Event Process
+
+        /// <summary>
+        /// ゲームの完全初期化。Playerなども含めてクリア
+        /// Ownerではない場合は、Ownerに通知
+        /// </summary>
+        public void InitGame()
+        {
+            Log(ErrorLevel.Info, $"{nameof(InitGame)}");
+            if (!IsOwner)
+            {
+                SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner, nameof(InitGame));
+                return;
+            }
+            // 変数初期化して同期
+            ResetSyncedProperties(); // state: * -> Reset
+            SyncManually();
+        }
+
+        // Animation Test
+        public void OnTestAnimation1()
+        {
+            var number = UnityEngine.Random.Range(DiceArrayBits.MIN_DICE_VALUE, DiceArrayBits.MAX_DICE_VALUE + 1);
+            var refCount = UnityEngine.Random.Range(0, 4);
+
+            for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+            {
+                var player1RefCount = Player1DiceArrayBits.GetColumnRefCount(col);
+                var player2RefCount = Player2DiceArrayBits.GetColumnRefCount(col);
+
+                for (int row = 0; row < DiceArrayBits.NUM_ROWS; row++)
+                {
+                    var dice1 = Player1ColDiceArrayList[col][row];
+                    var dice2 = Player2ColDiceArrayList[col][row];
+
+                    dice1.SetInteger("Number", number);
+                    dice1.SetInteger("RefCount", refCount);
+                    dice2.SetInteger("Number", number);
+                    dice2.SetInteger("RefCount", refCount);
+                }
+            }
+            SendCustomEventDelayedSeconds(nameof(OnTestAnimation1), 1.5f);
+        }
+        #endregion
+
+        #region Event Handlers
+        void Start()
+        {
+            Log(ErrorLevel.Info, $"{nameof(Start)}");
+        }
+
+        public override void OnPlayerJoined(VRCPlayerApi player)
+        {
+            Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {player.displayName} {IsOwner}");
+
+            // 初期化必要な場合
+            if (Progress == (int)GameProgress.Initial)
+            {
+                // 設定完了確認とUIのリセット
+                if (!IsValidInspectorSettings(out var msg))
+                {
+                    Log(ErrorLevel.Error, msg);
+                    return;
+                }
+                ResetAllUIState();
+
+                // 初期化直後かつOwnerの1回に限り、初期化処理を行う
+                if (IsOwner)
+                {
+                    InitGame();
+                }
+            }
+
+            // OnPlayerJoined時点で変数は同期済のようだが、RequestSerialization未実施分の差分があるかもしれないので送っておく
+            if (IsOwner)
+            {
+                SyncManually();
+            }
+        }
+
+        public override void OnPlayerLeft(VRCPlayerApi player)
+        {
+            Log(ErrorLevel.Info, $"{nameof(OnPlayerLeft)}: {player.displayName} {IsOwner}");
+
+            // Ownerの場合、Playerどちらかに含まれるか検査し、抜けた場合はAbort
+            if (IsOwner)
+            {
+                if (Player1PlayerId == player.playerId)
+                {
+                    // Player1が抜けた
+                    Player1PlayerId = 0;
+                    Player1DisplayName = "";
+                    Player1Type = (int)PlayerType.Invalid;
+                    Progress = (int)GameProgress.Aborted;
+                    Log(ErrorLevel.Warning, $"{nameof(OnPlayerLeft)}: Player1");
+                }
+                else if (Player2PlayerId == player.playerId)
+                {
+                    // Player2が抜けた
+                    Player2PlayerId = 0;
+                    Player2DisplayName = "";
+                    Player2Type = (int)PlayerType.Invalid;
+                    Progress = (int)GameProgress.Aborted;
+                    Log(ErrorLevel.Warning, $"{nameof(OnPlayerLeft)}: Player2");
+                }
+                SyncManually();
+            }
+        }
+
+        /// <summary>
+        /// Synced Propertiesが更新されたときに呼び出される。UIの更新を行う
+        /// </summary>
+        public void OnUIUpdate()
+        {
+            Log(ErrorLevel.Info, $"{nameof(OnUIUpdate)}");
+
+            // 頭上で回転するサイコロは、Roll待ちのケースでのみ表示。Userが触れるのはここだけ
+            // Unity DebugだとNetworking.LocalPlayerが取得できないので無視
+            bool isRollReady = (IsUnityDebug)
+                || (Networking.LocalPlayer.playerId == Player1PlayerId && Progress == (int)GameProgress.WaitPlayer1Roll)
+                || (Networking.LocalPlayer.playerId == Player2PlayerId && Progress == (int)GameProgress.WaitPlayer2Roll);
+            DiceForReady.gameObject.SetActive(isRollReady);
+            DiceForReady.SetBool("IsReady", isRollReady);
+            DiceRollCollider.IsEventSendable = isRollReady;
+
+            // 転がす前の場合は、転がしたあとのサイコロは非表示かつ場所リセット
+            if (isRollReady)
+            {
+                DiceForRoll.SetActive(false);
+                DiceForRoll.transform.position = DiceForReady.transform.position;
+            }
+            else
+            {
+                // サイコロを転がし始めてから配置するまでは、サイコロを転がし中として扱う
+                bool isRolled = (Progress == (int)GameProgress.Player1Rolling)
+                             || (Progress == (int)GameProgress.Player2Rolling)
+                             || (Progress == (int)GameProgress.WaitPlayer1Put)
+                             || (Progress == (int)GameProgress.WaitPlayer1Put);
+                DiceForRoll.SetActive(isRolled);
+            }
+
+            // Player1の配置ができるのは、Player1の配置待ちの場合
+            // ただし、各列のサイコロ配置数が最大に達している場合は配置できない
+            bool isPlayer1Put = (IsUnityDebug) || (Networking.LocalPlayer.playerId == Player1PlayerId && Progress == (int)GameProgress.WaitPlayer1Put);
+            for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+            {
+                // Player1のボタンが押せるケースは配置まちかつPlayer1が自分自身の場合
+                Player1ColumnColliders[col].IsEventSendable = isPlayer1Put && !Player1DiceArrayBits.IsColumnFull(col);
+            }
+            // Player2も同様
+            bool isPlayer2Put = (IsUnityDebug) || (Networking.LocalPlayer.playerId == Player2PlayerId && Progress == (int)GameProgress.WaitPlayer2Put);
+            for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+            {
+                Player2ColumnColliders[col].IsEventSendable = isPlayer2Put && !Player2DiceArrayBits.IsColumnFull(col);
+            }
+
+            // Player1/2のサイコロ表示状態を同期
+            for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+            {
+                var player1RefCount = Player1DiceArrayBits.GetColumnRefCount(col);
+                var player2RefCount = Player2DiceArrayBits.GetColumnRefCount(col);
+
+                for (int row = 0; row < DiceArrayBits.NUM_ROWS; row++)
+                {
+                    var dice1 = Player1ColDiceArrayList[col][row];
+                    dice1.gameObject.SetActive(true); // 表示はずっとする
+                    dice1.SetInteger("Number", Player1DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
+                    dice1.SetInteger("RefCount", player1RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+
+                    var dice2 = Player2ColDiceArrayList[col][row];
+                    dice2.gameObject.SetActive(true); // 表示はずっとする
+                    dice2.SetInteger("Number", Player2DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
+                    dice2.SetInteger("RefCount", player2RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+                }
+            }
+
+            // スコア表示を更新
+            for (var col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+            {
+                Player1ColumnScoreTexts[col].text = $"{Player1DiceArrayBits.GetColumnScore(col):D02}";
+                Player2ColumnScoreTexts[col].text = $"{Player2DiceArrayBits.GetColumnScore(col):D02}";
+            }
+            Player1MainScoreText.text = $"Player1: {Player1DiceArrayBits.GetTotalScore():D03} pt.";
+            Player2MainScoreText.text = $"Player2: {Player2DiceArrayBits.GetTotalScore():D03} pt.";
+
+            // ターン表示を更新
+            TurnText.text = $"Turn: {CurrentTurn:D3}";
+
+            // システムメッセージを更新
+            switch ((GameProgress)Progress)
+            {
+                case GameProgress.Initial:
+                    SystemText.text = "Booting...";
+                    break;
+                case GameProgress.WaitEnterPlayer1:
+                    SystemText.text = "Waiting for Player1";
+                    break;
+                case GameProgress.WaitEnterPlayer2:
+                    SystemText.text = "Waiting for Player2";
+                    break;
+                case GameProgress.GameStart:
+                    SystemText.text = "Game Start!";
+                    break;
+
+                case GameProgress.WaitPlayer1Roll:
+                    SystemText.text = "Player1: Roll the dice!";
+                    break;
+                case GameProgress.Player1Rolling:
+                    SystemText.text = "Player1: Rolling the dice...";
+                    break;
+                case GameProgress.WaitPlayer1Put:
+                    SystemText.text = $"Player1: Put the dice! dice={RolledDiceValue}";
+                    break;
+                case GameProgress.WaitPlayer1Calc:
+                    SystemText.text = "Player1: Calculating...";
+                    break;
+
+                case GameProgress.WaitPlayer2Roll:
+                    SystemText.text = "Player2: Roll the dice!";
+                    break;
+                case GameProgress.Player2Rolling:
+                    SystemText.text = "Player2: Rolling the dice...";
+                    break;
+                case GameProgress.WaitPlayer2Put:
+                    SystemText.text = $"Player2: Put the dice! dice={RolledDiceValue}";
+                    break;
+                case GameProgress.WaitPlayer2Calc:
+                    SystemText.text = "Player2: Calculating...";
+                    break;
+
+                case GameProgress.GameEnd:
+                    SystemText.text = $"Game End! {CalcGameJudge(CurrentPlayer)}";
+                    break;
+                case GameProgress.Aborted:
+                    SystemText.text = "Game Aborted!";
+                    break;
+                default:
+                    break;
+            }
+
+            // Join済ならLeaveだけ。Join前ならEntryだけ
+            Player1EntryButton.interactable = (Player1PlayerId == 0);
+            Player1CPUEntryButton.interactable = (Player1PlayerId == 0);
+            Player2EntryButton.interactable = (Player2PlayerId == 0);
+            Player2CPUEntryButton.interactable = (Player2PlayerId == 0);
+
+            // リセット/リマッチボタンはいたずら防止にPlayerどちらかしか押せないようにする
+            bool isResetable = (IsUnityDebug) || (Networking.LocalPlayer.playerId == Player1PlayerId || Networking.LocalPlayer.playerId == Player2PlayerId);
+            ResetButton.interactable = isResetable;
+            RematchButton.interactable = isResetable;
+        }
+
+        /// <summary>
+        /// Player1が参加ボタンを押したときに呼び出される
+        /// </summary>
+        public void OnPlayer1Entry()
+        {
+            Log(ErrorLevel.Info, nameof(OnPlayer1Entry));
+            // TODO: Player1の参加処理
+        }
+
+        /// <summary>
+        /// Player1がCPU参加ボタンを押したときに呼び出される
+        /// </summary>
+        public void OnPlayer1CPUEntry()
+        {
+            Log(ErrorLevel.Info, nameof(OnPlayer1CPUEntry));
+            // TODO: Player1のCPU参加処理
+        }
+
+        /// <summary>
+        /// Player2が参加ボタンを押したときに呼び出される
+        /// </summary>
+        public void OnPlayer2Entry()
+        {
+            Log(ErrorLevel.Info, nameof(OnPlayer2Entry));
+            // TODO: Player2の参加処理
+        }
+
+        /// <summary>
+        /// Player2がCPU参加ボタンを押したときに呼び出される
+        /// </summary>
+        public void OnPlayer2CPUEntry()
+        {
+            Log(ErrorLevel.Info, nameof(OnPlayer2CPUEntry));
+            // TODO: Player2のCPU参加処理
+        }
+
+        /// <summary>
+        /// リマッチボタンを押したときに呼び出される
+        /// </summary>
+        public void OnRematch()
+        {
+            Log(ErrorLevel.Info, nameof(OnRematch));
+            // TODO: リマッチ処理
+        }
+
+        /// <summary>
+        /// リセットボタンを押したときに呼び出される
+        /// </summary>
+        public void OnReset()
+        {
+            Log(ErrorLevel.Info, nameof(OnReset));
+            // TODO: リセット処理
+        }
+
+        /// <summary>
+        /// サイコロを転がしをUseしたときに呼び出される
+        /// </summary>
+        public void OnRollDice()
+        {
+            Log(ErrorLevel.Info, nameof(OnRollDice));
+        }
+
+        /// <summary>
+        /// Player1が1列目にサイコロを配置したときに呼び出される
+        /// </summary>
+        public void OnPutP1C1()
+        {
+            Log(ErrorLevel.Info, nameof(OnPutP1C1));
+            // TODO: サイコロを配置する
+        }
+
+        /// <summary>
+        /// Player1が2列目にサイコロを配置したときに呼び出される
+        /// </summary>
+        public void OnPutP1C2()
+        {
+            Log(ErrorLevel.Info, nameof(OnPutP1C2));
+            // TODO: サイコロを配置する
+        }
+
+        /// <summary>
+        /// Player1が3列目にサイコロを配置したときに呼び出される
+        /// </summary>
+        public void OnPutP1C3()
+        {
+            Log(ErrorLevel.Info, nameof(OnPutP1C3));
+            // TODO: サイコロを配置する
+        }
+
+        /// <summary>
+        /// Player2が1列目にサイコロを配置したときに呼び出される
+        /// </summary>
+        public void OnPutP2C1()
+        {
+            Log(ErrorLevel.Info, nameof(OnPutP2C1));
+            // TODO: サイコロを配置する
+        }
+
+        /// <summary>
+        /// Player2が2列目にサイコロを配置したときに呼び出される
+        /// </summary>
+        public void OnPutP2C2()
+        {
+            Log(ErrorLevel.Info, nameof(OnPutP2C2));
+            // TODO: サイコロを配置する
+        }
+
+        /// <summary>
+        /// Player2が3列目にサイコロを配置したときに呼び出される
+        /// </summary>
+        public void OnPutP2C3()
+        {
+            Log(ErrorLevel.Info, nameof(OnPutP2C3));
+            // TODO: サイコロを配置する
+        }
+
+        #endregion
+    }
+}
