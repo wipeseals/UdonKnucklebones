@@ -511,6 +511,44 @@ namespace Wipeseals
         }
 
         /// <summary>
+        /// ゲームが開始していないならtrue
+        /// </summary>
+        public bool IsGameNotReady => Progress == (int)GameProgress.Initial || Progress == (int)GameProgress.WaitEnterPlayers;
+
+        /// <summary>
+        /// 現在のプレイヤーがCPUならtrue
+        /// </summary>
+        public bool IsControlledByCpu =>
+            (CurrentPlayer == PLAYER1 && Player1Type == (int)PlayerType.CPU)
+            || (CurrentPlayer == PLAYER2 && Player2Type == (int)PlayerType.CPU);
+
+        /// <summary>
+        /// CPUしか参加していなければtrue
+        /// </summary>
+        public bool IsCpuOnly => (Player1Type == (int)PlayerType.CPU && Player2Type == (int)PlayerType.CPU);
+
+        /// <summary>
+        /// 自身がPlayer1ならtrue
+        /// </summary>
+        public bool IsMyselfPlayer1 => IsUnityDebug || Networking.LocalPlayer.playerId == Player1PlayerId;
+
+        /// <summary>
+        /// 自身がPlayer2ならtrue
+        /// </summary>
+        public bool IsMyselfPlayer2 => IsUnityDebug || Networking.LocalPlayer.playerId == Player2PlayerId;
+
+        /// <summary>
+        /// 自身が参加しているならtrue
+        /// </summary>
+        public bool IsJoinedMyself => IsMyselfPlayer1 || IsMyselfPlayer2;
+
+        /// <summary>
+        /// 現在のプレイヤーが自分ならtrue
+        /// </summary>
+        public bool IsMyTurn => (IsMyselfPlayer1 && CurrentPlayer == PLAYER1)
+         || (IsMyselfPlayer2 && CurrentPlayer == PLAYER2);
+
+        /// <summary>
         /// Player1のサイコロ列の配列
         /// </summary>
         public Animator[][] Player1ColDiceArrayList => new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray };
@@ -1073,20 +1111,9 @@ namespace Wipeseals
             SyncManually();
 
             // CPUなら自動で進める
-            switch (Progress)
+            if (IsControlledByCpu)
             {
-                case (int)GameProgress.WaitPlayer1Roll:
-                    if (Player1Type == (int)PlayerType.CPU)
-                    {
-                        SendCustomEventDelayedSeconds(nameof(OnPollingRoll), ThinkTimeForCpu);
-                    }
-                    break;
-                case (int)GameProgress.WaitPlayer2Roll:
-                    if (Player2Type == (int)PlayerType.CPU)
-                    {
-                        SendCustomEventDelayedSeconds(nameof(OnPollingRoll), ThinkTimeForCpu);
-                    }
-                    break;
+                SendCustomEventDelayedSeconds(nameof(OnPollingRoll), ThinkTimeForCpu);
             }
         }
 
@@ -1160,45 +1187,46 @@ namespace Wipeseals
                 Progress = (int)GameProgress.WaitPlayer2Put;
             }
 
+            // ローカル変数クリア
+            _lastObservedDiceValue = 0;
+            _lastObservedDiceValueTime = 0;
+
             Log(ErrorLevel.Info, $"{nameof(PollingRoll)}: RolledDiceValue={RolledDiceValue} Player={CurrentPlayer}");
             SyncManually();
 
             // CPUなら自動で進める. 可変長にできないので埋めておく
             var usableEventNames = new[] { "", "", "" };
             var eventCount = 0;
-            switch (Progress)
+            if (IsControlledByCpu)
             {
-                case (int)GameProgress.WaitPlayer1Put:
-                    if (Player1Type == (int)PlayerType.CPU)
+                if (CurrentPlayer == PLAYER1)
+                {
+                    var events = new[] { nameof(OnPutP1C1), nameof(OnPutP1C2), nameof(OnPutP1C3) };
+                    for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
                     {
-                        var events = new[] { nameof(OnPutP1C1), nameof(OnPutP1C2), nameof(OnPutP1C3) };
-                        for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+                        // まだ配置できる列がある場合のみイベントを登録
+                        if (!Player1DiceArrayBits.IsColumnFull(col))
                         {
-                            // まだ配置できる列がある場合のみイベントを登録
-                            if (!Player1DiceArrayBits.IsColumnFull(col))
-                            {
-                                usableEventNames[eventCount] = events[col];
-                                eventCount++;
-                            }
+                            usableEventNames[eventCount] = events[col];
+                            eventCount++;
                         }
                     }
-                    break;
-                case (int)GameProgress.WaitPlayer2Put:
-                    if (Player2Type == (int)PlayerType.CPU)
+                }
+                else if (CurrentPlayer == PLAYER2)
+                {
+                    var events = new[] { nameof(OnPutP2C1), nameof(OnPutP2C2), nameof(OnPutP2C3) };
+                    for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
                     {
-                        var events = new[] { nameof(OnPutP2C1), nameof(OnPutP2C2), nameof(OnPutP2C3) };
-                        for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+                        // まだ配置できる列がある場合のみイベントを登録
+                        if (!Player2DiceArrayBits.IsColumnFull(col))
                         {
-                            // まだ配置できる列がある場合のみイベントを登録
-                            if (!Player2DiceArrayBits.IsColumnFull(col))
-                            {
-                                usableEventNames[eventCount] = events[col];
-                                eventCount++;
-                            }
+                            usableEventNames[eventCount] = events[col];
+                            eventCount++;
                         }
                     }
-                    break;
+                }
             }
+            // ランダムで選択するイベント発行
             if (eventCount > 0)
             {
                 var eventName = usableEventNames[UnityEngine.Random.Range(0, eventCount)];
@@ -1260,6 +1288,10 @@ namespace Wipeseals
                 ChangeOwner();
             }
 
+            // 左詰めの処理していないのでここでやる（PutDice時の消えるアニメーション流したいため)
+            SetDiceArrayBits(PLAYER1, GetDiceArrayBits(PLAYER1).LeftJustify());
+            SetDiceArrayBits(PLAYER2, GetDiceArrayBits(PLAYER2).LeftJustify());
+
             // まだ置けるなら続行
             if (!GetDiceArrayBits(CurrentPlayer).IsFull())
             {
@@ -1274,6 +1306,7 @@ namespace Wipeseals
                 {
                     Progress = (int)GameProgress.WaitPlayer1Roll;
                 }
+                CurrentTurn++;
                 SyncManually();
 
                 // Progress更新した時点でCurrentPlayerの戻り値が変わる。CPUならRollするトリガを与える
@@ -1304,6 +1337,8 @@ namespace Wipeseals
             {
                 CurrentGameJudge = (int)GameJudge.Draw;
             }
+
+            // TODO: UdonChips対応?
 
             // ゲーム終了
             Progress = (int)GameProgress.GameEnd;
@@ -1443,13 +1478,13 @@ namespace Wipeseals
                 {
                     var dice1 = Player1ColDiceArrayList[col][row];
                     dice1.gameObject.SetActive(true); // 表示はずっとする
-                    dice1.SetInteger("Number", Player1DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                     dice1.SetInteger("RefCount", player1RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+                    dice1.SetInteger("Number", Player1DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
 
                     var dice2 = Player2ColDiceArrayList[col][row];
                     dice2.gameObject.SetActive(true); // 表示はずっとする
-                    dice2.SetInteger("Number", Player2DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                     dice2.SetInteger("RefCount", player2RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+                    dice2.SetInteger("Number", Player2DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                 }
             }
 
@@ -1485,7 +1520,7 @@ namespace Wipeseals
                     SystemText.text = "Player1: Rolling the dice...";
                     break;
                 case GameProgress.WaitPlayer1Put:
-                    SystemText.text = $"Player1: Put the dice! dice={RolledDiceValue}";
+                    SystemText.text = $"Player1: Put the dice '{RolledDiceValue}'!";
                     break;
                 case GameProgress.WaitPlayer1Calc:
                     SystemText.text = "Player1: Calculating...";
@@ -1498,14 +1533,27 @@ namespace Wipeseals
                     SystemText.text = "Player2: Rolling the dice...";
                     break;
                 case GameProgress.WaitPlayer2Put:
-                    SystemText.text = $"Player2: Put the dice! dice={RolledDiceValue}";
+                    SystemText.text = $"Player2: Put the dice '{RolledDiceValue}'!";
                     break;
                 case GameProgress.WaitPlayer2Calc:
                     SystemText.text = "Player2: Calculating...";
                     break;
 
                 case GameProgress.GameEnd:
-                    SystemText.text = $"Game End! {((GameJudge)CurrentGameJudge).ToString()}";
+                    switch ((GameJudge)CurrentGameJudge)
+                    {
+                        case GameJudge.Player1Win:
+                            SystemText.text = "Player1 Win!";
+                            break;
+                        case GameJudge.Player2Win:
+                            SystemText.text = "Player2 Win!";
+                            break;
+                        case GameJudge.Draw:
+                            SystemText.text = "Draw!";
+                            break;
+                        default:
+                            break;
+                    }
                     break;
                 case GameProgress.Aborted:
                     SystemText.text = "Game Aborted!";
@@ -1524,10 +1572,9 @@ namespace Wipeseals
             Player2EntryButton.interactable = (Player2PlayerId == 0);
             Player2CPUEntryButton.interactable = (Player2PlayerId == 0);
 
-            // リセット/リマッチボタンはいたずら防止にAbort後か、Playerどちらかしか押せないようにする
-            bool isResetable = (IsUnityDebug) || (Progress == (int)GameProgress.Aborted) || (Networking.LocalPlayer.playerId == Player1PlayerId || Networking.LocalPlayer.playerId == Player2PlayerId);
-            ResetButton.interactable = isResetable;
-            RematchButton.interactable = isResetable;
+            // リセット/リマッチボタンはいたずら防止目的で設定。CPUだけの試合、もしくはゲーム開始前なら操作可能。それ以外はPlayerのみ押せる
+            ResetButton.interactable = IsCpuOnly || IsGameNotReady || IsJoinedMyself;
+            RematchButton.interactable = IsCpuOnly || IsGameNotReady || IsJoinedMyself;
         }
 
         /// <summary>

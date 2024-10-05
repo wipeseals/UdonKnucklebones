@@ -1354,7 +1354,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: After Player1 and Player2 have entered, the game begins.
+  m_text: GitHub - wipeseals/UdonKnucklebones
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
   m_sharedMaterial: {fileID: 2140032, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
@@ -4150,6 +4150,10 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1132024059}
   IsDebug: 1
+  ThinkTimeForCpu: 1
+  PollingSecForRolling: 0.5
+  DecideDiceValueSec: 3
+  IsColumnIndexCrossed: 1
   DiceForReady: {fileID: 709215496}
   DiceForRoll: {fileID: 890692803}
   DiceRollCollider: {fileID: 1224640904}
@@ -4204,6 +4208,7 @@ MonoBehaviour:
   ResetButton: {fileID: 858265532}
   RematchButton: {fileID: 815310510}
   _progress: 0
+  _currentGameJudge: 0
   _systemMessage: 
   _player1Type: 0
   _player2Type: 0
@@ -4213,7 +4218,6 @@ MonoBehaviour:
   _player1PlayerId: 0
   _player2PlayerId: 0
   _currentTurn: 1
-  _currentPlayer: 1
   _player1DiceArrayBits: 0
   _player2DiceArrayBits: 0
 --- !u!1 &1151187826 stripped
