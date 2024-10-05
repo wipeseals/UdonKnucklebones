@@ -45,7 +45,6 @@ namespace Wipeseals
             return DiceArrayBits.PutDice(initialBits, col, row, value);
         }
 
-
         [TestCase(0, ExpectedResult = 0x00000000_00000000UL)]
         [TestCase(1, ExpectedResult = 0x00000001_11111111UL)]
         [TestCase(2, ExpectedResult = 0x00000002_22222222UL)]
@@ -182,5 +181,23 @@ namespace Wipeseals
         {
             return DiceArrayBits.RemoveByValue(initialBits, col, value);
         }
+
+        [TestCase(0x00000000_00000000UL, ExpectedResult = 0x00000000_00000000UL)]
+        [TestCase(0x00000000_00000010UL, ExpectedResult = 0x00000000_00000001UL)]
+        [TestCase(0x00000000_00200010UL, ExpectedResult = 0x00000000_00002001UL)]
+        [TestCase(0x00000003_00200010UL, ExpectedResult = 0x00000000_03002001UL)]
+        [TestCase(0x00000003_00200100UL, ExpectedResult = 0x00000000_03002001UL)]
+        [TestCase(0x00000003_00020100UL, ExpectedResult = 0x00000000_03002001UL)]
+        [TestCase(0x00000000_03020100UL, ExpectedResult = 0x00000000_03002001UL)]
+        [TestCase(0x00000000_03020140UL, ExpectedResult = 0x00000000_03002014UL)]
+        [TestCase(0x00000000_03520140UL, ExpectedResult = 0x00000000_03052014UL)]
+        [TestCase(0x00000006_03520140UL, ExpectedResult = 0x00000000_63052014UL)]
+        [TestCase(0x00000000_63502104UL, ExpectedResult = 0x00000000_63052014UL)]
+        public ulong LeftJustifyTest(ulong initialBits)
+        {
+            return DiceArrayBits.LeftJustify(initialBits);
+        }
+
+
     }
 }
