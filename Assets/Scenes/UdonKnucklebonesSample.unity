@@ -239,7 +239,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 13754087}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: InfoBoard
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -274,7 +274,7 @@ GameObject:
   - component: {fileID: 25561661}
   - component: {fileID: 25561663}
   - component: {fileID: 25561662}
-  m_Layer: 9
+  m_Layer: 13
   m_Name: Player1Col3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -379,7 +379,7 @@ GameObject:
   - component: {fileID: 56691333}
   - component: {fileID: 56691335}
   - component: {fileID: 56691334}
-  m_Layer: 9
+  m_Layer: 13
   m_Name: Player2Col3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -588,7 +588,7 @@ GameObject:
   - component: {fileID: 110026927}
   - component: {fileID: 110026929}
   - component: {fileID: 110026928}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: CreditText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -830,7 +830,7 @@ GameObject:
   - component: {fileID: 133149449}
   - component: {fileID: 133149451}
   - component: {fileID: 133149450}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -965,7 +965,7 @@ GameObject:
   - component: {fileID: 171457948}
   - component: {fileID: 171457950}
   - component: {fileID: 171457949}
-  m_Layer: 9
+  m_Layer: 13
   m_Name: Player1Col2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1069,7 +1069,7 @@ GameObject:
   - component: {fileID: 195378886}
   - component: {fileID: 195378888}
   - component: {fileID: 195378887}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1308,7 +1308,7 @@ GameObject:
   - component: {fileID: 218481912}
   - component: {fileID: 218481914}
   - component: {fileID: 218481913}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: SystemText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1354,7 +1354,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: After Player1 and Player2 have entered, the game begins.
+  m_text: GitHub - wipeseals/UdonKnucklebones
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
   m_sharedMaterial: {fileID: 2140032, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
@@ -1442,7 +1442,7 @@ GameObject:
   - component: {fileID: 235385406}
   - component: {fileID: 235385408}
   - component: {fileID: 235385407}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1629,7 +1629,7 @@ GameObject:
   - component: {fileID: 323229882}
   - component: {fileID: 323229884}
   - component: {fileID: 323229883}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Col2ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2211,7 +2211,7 @@ GameObject:
   - component: {fileID: 538186203}
   - component: {fileID: 538186202}
   - component: {fileID: 538186201}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player1TextCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2326,7 +2326,7 @@ GameObject:
   - component: {fileID: 558197031}
   - component: {fileID: 558197030}
   - component: {fileID: 558197029}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Computer2EntryButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2456,7 +2456,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 602753358}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Props
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2602,7 +2602,7 @@ GameObject:
   - component: {fileID: 754414276}
   - component: {fileID: 754414278}
   - component: {fileID: 754414277}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: TurnText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2734,7 +2734,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 768365161}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2770,7 +2770,7 @@ GameObject:
   - component: {fileID: 781402806}
   - component: {fileID: 781402808}
   - component: {fileID: 781402807}
-  m_Layer: 9
+  m_Layer: 13
   m_Name: Player2Col2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2872,7 +2872,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 781746247}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Static
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2907,7 +2907,7 @@ GameObject:
   - component: {fileID: 801308936}
   - component: {fileID: 801308938}
   - component: {fileID: 801308937}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player2ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3042,7 +3042,7 @@ GameObject:
   - component: {fileID: 815310512}
   - component: {fileID: 815310511}
   - component: {fileID: 815310510}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: RematchButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3174,7 +3174,7 @@ GameObject:
   - component: {fileID: 830447977}
   - component: {fileID: 830447979}
   - component: {fileID: 830447978}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3309,7 +3309,7 @@ GameObject:
   - component: {fileID: 858265534}
   - component: {fileID: 858265533}
   - component: {fileID: 858265532}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: ResetButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3552,9 +3552,9 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 890692803}
   serializedVersion: 4
-  m_Mass: 0.01
-  m_Drag: 0.01
-  m_AngularDrag: 0.001
+  m_Mass: 0.0001
+  m_Drag: 0.0001
+  m_AngularDrag: 0.0001
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -3570,7 +3570,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!1 &914180965
 GameObject:
   m_ObjectHideFlags: 0
@@ -3582,7 +3582,7 @@ GameObject:
   - component: {fileID: 914180966}
   - component: {fileID: 914180968}
   - component: {fileID: 914180967}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Col1ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3822,7 +3822,7 @@ GameObject:
   - component: {fileID: 1040865421}
   - component: {fileID: 1040865423}
   - component: {fileID: 1040865422}
-  m_Layer: 9
+  m_Layer: 13
   m_Name: Player1Col1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4079,7 +4079,7 @@ GameObject:
   - component: {fileID: 1132024058}
   - component: {fileID: 1132024061}
   - component: {fileID: 1132024059}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Core
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4150,6 +4150,17 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1132024059}
   IsDebug: 1
+  ThinkTimeForCpu: 1
+  PollingSecForRolling: 0.5
+  IsColumnIndexCrossed: 1
+  DiceRollForceRange: 1
+  DiceRollTimeoutSec: 10
+  DiceValueForFront: 1
+  DiceValueForBack: 6
+  DiceValueForRight: 5
+  DiceValueForLeft: 2
+  DiceValueForTop: 4
+  DiceValueForBottom: 3
   DiceForReady: {fileID: 709215496}
   DiceForRoll: {fileID: 890692803}
   DiceRollCollider: {fileID: 1224640904}
@@ -4204,6 +4215,7 @@ MonoBehaviour:
   ResetButton: {fileID: 858265532}
   RematchButton: {fileID: 815310510}
   _progress: 0
+  _currentGameJudge: 0
   _systemMessage: 
   _player1Type: 0
   _player2Type: 0
@@ -4213,7 +4225,6 @@ MonoBehaviour:
   _player1PlayerId: 0
   _player2PlayerId: 0
   _currentTurn: 1
-  _currentPlayer: 1
   _player1DiceArrayBits: 0
   _player2DiceArrayBits: 0
 --- !u!1 &1151187826 stripped
@@ -4367,7 +4378,7 @@ GameObject:
   - component: {fileID: 1191419410}
   - component: {fileID: 1191419409}
   - component: {fileID: 1191419408}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player2TextCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4481,7 +4492,7 @@ GameObject:
   - component: {fileID: 1216166678}
   - component: {fileID: 1216166680}
   - component: {fileID: 1216166679}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Col1ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4762,8 +4773,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.23803735, y: 0.32070494, z: 0.40187547}
-  m_Center: {x: -0.251015, y: 0.14466572, z: -0.0013973862}
+  m_Size: {x: 0.26728112, y: 0.32070494, z: 0.45678985}
+  m_Center: {x: -0.24844274, y: 0.14466572, z: 0.013137639}
 --- !u!114 &1224640903
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -4825,7 +4836,7 @@ GameObject:
   - component: {fileID: 1266269921}
   - component: {fileID: 1266269923}
   - component: {fileID: 1266269922}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5257,7 +5268,7 @@ GameObject:
   - component: {fileID: 1353781349}
   - component: {fileID: 1353781348}
   - component: {fileID: 1353781347}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player1Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5373,7 +5384,7 @@ GameObject:
   - component: {fileID: 1383128658}
   - component: {fileID: 1383128660}
   - component: {fileID: 1383128659}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Col3ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5613,7 +5624,7 @@ GameObject:
   - component: {fileID: 1463065850}
   - component: {fileID: 1463065852}
   - component: {fileID: 1463065851}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: TitleText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5748,7 +5759,7 @@ GameObject:
   - component: {fileID: 1472294946}
   - component: {fileID: 1472294945}
   - component: {fileID: 1472294944}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player1EntryButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5880,7 +5891,7 @@ GameObject:
   - component: {fileID: 1473219237}
   - component: {fileID: 1473219239}
   - component: {fileID: 1473219238}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player1ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6015,7 +6026,7 @@ GameObject:
   - component: {fileID: 1486870221}
   - component: {fileID: 1486870220}
   - component: {fileID: 1486870219}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Computer1EntryButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6145,7 +6156,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1504444854}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: UdonKnucklebones
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6491,7 +6502,7 @@ GameObject:
   - component: {fileID: 1720341679}
   - component: {fileID: 1720341678}
   - component: {fileID: 1720341677}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: BackCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6609,7 +6620,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1727481634}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6646,7 +6657,7 @@ GameObject:
   - component: {fileID: 1729243410}
   - component: {fileID: 1729243409}
   - component: {fileID: 1729243408}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: FrontCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6818,7 +6829,7 @@ GameObject:
   - component: {fileID: 1779316964}
   - component: {fileID: 1779316966}
   - component: {fileID: 1779316965}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Col2ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -7202,7 +7213,7 @@ GameObject:
   - component: {fileID: 1869215186}
   - component: {fileID: 1869215188}
   - component: {fileID: 1869215187}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -7337,7 +7348,7 @@ GameObject:
   - component: {fileID: 1931968388}
   - component: {fileID: 1931968387}
   - component: {fileID: 1931968386}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player2EntryButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -7575,7 +7586,7 @@ GameObject:
   - component: {fileID: 1952136898}
   - component: {fileID: 1952136900}
   - component: {fileID: 1952136899}
-  m_Layer: 9
+  m_Layer: 13
   m_Name: Player2Col1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -7942,7 +7953,7 @@ GameObject:
   - component: {fileID: 2042396259}
   - component: {fileID: 2042396261}
   - component: {fileID: 2042396260}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: SubTitleText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8078,7 +8089,7 @@ GameObject:
   - component: {fileID: 2051741989}
   - component: {fileID: 2051741988}
   - component: {fileID: 2051741987}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Player2Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8299,7 +8310,7 @@ GameObject:
   - component: {fileID: 2060781526}
   - component: {fileID: 2060781528}
   - component: {fileID: 2060781527}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Col3ScoreText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8431,7 +8442,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2075532844}
-  m_Layer: 9
+  m_Layer: 13
   m_Name: PlayerColumnCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8470,7 +8481,7 @@ GameObject:
   - component: {fileID: 2081014461}
   - component: {fileID: 2081014463}
   - component: {fileID: 2081014462}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8602,7 +8613,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2102332058}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: DiceRoll
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8639,7 +8650,7 @@ GameObject:
   - component: {fileID: 2119431020}
   - component: {fileID: 2119431022}
   - component: {fileID: 2119431021}
-  m_Layer: 0
+  m_Layer: 13
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -8863,7 +8874,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   launchedFromSDKPipeline: 0
   completedSDKPipeline: 0
-  blueprintId: 
+  blueprintId: wrld_1cfea318-1c43-4093-a077-38ca6bcf8491
   contentType: 1
   assetBundleUnityVersion: 
   fallbackStatus: 0
@@ -8879,6 +8890,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Base
+      objectReference: {fileID: 0}
+    - target: {fileID: 191691940699574454, guid: 504852afc0376d144a3f05eecd0f6921,
+        type: 3}
+      propertyPath: m_Layer
+      value: 13
       objectReference: {fileID: 0}
     - target: {fileID: 712367405141346828, guid: 504852afc0376d144a3f05eecd0f6921,
         type: 3}
@@ -8929,6 +8945,26 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1973723203407001735, guid: 504852afc0376d144a3f05eecd0f6921,
+        type: 3}
+      propertyPath: m_Layer
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 3457512145021236556, guid: 504852afc0376d144a3f05eecd0f6921,
+        type: 3}
+      propertyPath: m_Layer
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 6221377575394889201, guid: 504852afc0376d144a3f05eecd0f6921,
+        type: 3}
+      propertyPath: m_Layer
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 8626794016300093261, guid: 504852afc0376d144a3f05eecd0f6921,
+        type: 3}
+      propertyPath: m_Layer
+      value: 13
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -9036,14 +9072,14 @@ MonoBehaviour:
   interactThruLayers: 0
   autoSpatializeAudioSources: 0
   gravity: {x: 0, y: -9.81, z: 0}
-  layerCollisionArr: 01010101010001010101010100010001010101010101010101010101010101010101010101000101010101010001000101010101010101010101010101010101010101010100010101010101000100010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010001000101010101010101010101010101010101000000010000010100000000000000000000000000000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101000100010101010101010101010101010101010101010101010001010100000100000000000001010101010101010101010101010101010101000101010000010000000000000101010101010101010101010101010101010100010101010101000100010101010101010101010101010101010100000001000001010000000000000000000000000000010101010101010101010101010101000101010000010001010101010000000001010101010101010101000000010000010100000000000100000000000000000101010101010101010101010101010001010100000100010001010101010101010101010101010101010101010101000101010000010001000101010101010101010101010101010101010101010100010101000001000100010101010101010101010101010101010101010101010001010101010100000001010101010101010101010101010101010101010101000101010101010000000101010101010101010101010101010101010101010100010101010101000000010101010101010101010101010101010101010101010001010101010100000001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101
+  layerCollisionArr: 01010101010001010101010100010001010101000101010101010101010101010101010101000101010101010001000101010100010101010101010101010101010101010100010101010101000100010101010001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101000101010101010001000101010100010101010101010101010101000000010000010100000000000000000000000000000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010100010101010101000100010101010001010101010101010101010101010101010001010100000100000000000001000101010101010101010101010101010101000101010000010000000000000100010101010101010101010101010101010100010101010101000100010101010001010101010101010101010100000001000001010000000000000000000000000000010101010101010101010101010101000101010000010001010101010000000001010101010101010101000000010000010100000000000100000000000000000101010101010101010101010101010001010100000100010001010101000101010101010101010101010101010101000101010000010001000101010100010101010101010101010101010101010100010101000001000100010101010001010101010101010101010101010101010001010101010100000001010101000101010101010101010101010000000100000101000000000000000000000000000001010101010101010101010101010100010101010101000000010101010001010101010101010101010101010101010001010101010100000001010101000101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101
   capacity: 0
   contentSex: 0
   contentViolence: 0
   contentGore: 0
   contentOther: 0
   releasePublic: 0
-  unityVersion: 2019.4.31f1
+  unityVersion: 2022.3.22f1
   udonProducts: []
   Name: 
   NSFW: 0
@@ -9053,9 +9089,12 @@ MonoBehaviour:
   useAssignedLayers: 0
   DynamicPrefabs: []
   DynamicMaterials:
-  - {fileID: 2100000, guid: ac6083061cd05c147a58ada460367e99, type: 2}
-  - {fileID: 2100000, guid: 98740f2f3a3ceb14f913f35275e9575a, type: 2}
-  - {fileID: 2100000, guid: 9f1a5cfa57e398c488614d40c438f58a, type: 2}
+  - {fileID: 2100000, guid: 1d120b2eb27fb9749bb96284e9ceb8f2, type: 2}
+  - {fileID: 2100000, guid: 23cdcb341ff7a7a41b284c18d1c58082, type: 2}
+  - {fileID: 2100000, guid: d7fa91b34a68e4445835c70b9f1543c3, type: 2}
+  - {fileID: 2100000, guid: d6d50fb7bc8cb6446a78deb7666cd528, type: 2}
+  - {fileID: 2100000, guid: 64555b7b99e67554184836902ecd0ca0, type: 2}
+  - {fileID: 2100000, guid: 90216b2a4da02ad47b74be780128e668, type: 2}
   - {fileID: 2100000, guid: 5e2b0ebd8dba8564c87d48bd5436b78c, type: 2}
   LightMapsNear: []
   LightMapsFar: []
@@ -9109,7 +9148,44 @@ MonoBehaviour:
   RenderReflectionBounces: 0
   RenderReflectionIntensity: 0
   RenderSkybox: {fileID: 0}
-  NetworkIDs: []
+  NetworkIDs:
+  - gameObject: {fileID: 1132024057}
+    ID: 10
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 1040865419}
+    ID: 11
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 171457946}
+    ID: 12
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 25561659}
+    ID: 13
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 1952136896}
+    ID: 14
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 781402804}
+    ID: 15
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 56691331}
+    ID: 16
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 1224640900}
+    ID: 17
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+  - gameObject: {fileID: 3480278762663670689}
+    ID: 18
+    SerializedTypeNames:
+    - VRC.Udon.UdonBehaviour
+    - VRC.Udon.UdonBehaviour
   portraitCameraPositionOffset: {x: 0, y: 0, z: 0}
   portraitCameraRotationOffset: {x: 0, y: 1, z: 0, w: -0.00000004371139}
   NavigationAreas: []

@@ -41,13 +41,9 @@ namespace Wipeseals
         /// </summary>
         Initial = 0,
         /// <summary>
-        /// Player1の参加待ち
+        /// Player1/2の参加待ち
         /// </summary>
-        WaitEnterPlayer1,
-        /// <summary>
-        /// Player2の参加待ち
-        /// </summary>
-        WaitEnterPlayer2,
+        WaitEnterPlayers,
         /// <summary>
         /// ゲーム開始。再戦用に設けた状態
         /// </summary>
@@ -121,12 +117,24 @@ namespace Wipeseals
         CPU
     }
 
+    /// <summary>
+    /// Unity Vector3の方向に対応した列挙型
+    /// </summary>
+    public enum FaceDirection : int
+    {
+        Forward = 0, // (  0, +1, +1) Z+ 前
+        Back,        // (  0,  0, -1) Z- 後
+        Left,        // ( -1,  0,  0) X- 左
+        Right,       // ( +1,  0,  0) X+ 右
+        Up,          // (  0, +1,  0) Y+ 上
+        Down         // (  0, -1,  0) Y- 下
+    }
+
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class UdonKnucklebones : UdonSharpBehaviour
     {
         //////////////////////////////////////////////////////////////////////////////////////
-        #region Variables
-
+        // 変数定義関連
         #region Constants
         /// <summary>
         /// Player1
@@ -143,9 +151,45 @@ namespace Wipeseals
 
         [Header("Udon Knucklebones")]
 
-        [Header("for Debugging")]
+        [Header("for System Configuration")]
         [SerializeField, Tooltip("デバッグモード")]
         public bool IsDebug = true;
+
+
+        [SerializeField, Tooltip("CPUがイベントを進める速度")]
+        public float ThinkTimeForCpu = 1.0f;
+
+
+        [SerializeField, Tooltip("サイコロの目決定用Polling時間")]
+        public float PollingSecForRolling = 0.5f;
+
+        [SerializeField, Tooltip("Player1/2間で列番号が正面で一致しない(1,2,3 <-> 3,2,1)ときにtrue")]
+        public bool IsColumnIndexCrossed = true;
+
+        [SerializeField, Tooltip("サイコロを転がすときの力の強さ。ForceMode.VelovicityChangeで加速度を与える")]
+        public float DiceRollForceRange = 1.0f;
+
+        [SerializeField, Tooltip("サイコロ転がしのタイムアウト時間。吹き飛んでしまったときなどの対策")]
+        public float DiceRollTimeoutSec = 10.0f;
+
+        [Header("Dice Configuration")]
+        [SerializeField, Tooltip("+Z方向のサイコロの目")]
+        public int DiceValueForFront = 1;
+
+        [SerializeField, Tooltip("-Z方向のサイコロの目")]
+        public int DiceValueForBack = 6;
+
+        [SerializeField, Tooltip("+X方向のサイコロの目")]
+        public int DiceValueForRight = 5;
+
+        [SerializeField, Tooltip("-X方向のサイコロの目")]
+        public int DiceValueForLeft = 2;
+
+        [SerializeField, Tooltip("+Y方向のサイコロの目")]
+        public int DiceValueForTop = 4;
+
+        [SerializeField, Tooltip("-Y方向のサイコロの目")]
+        public int DiceValueForBottom = 3;
 
         [Header("Dice Objects")]
         [SerializeField, Tooltip("転がす準備中に見せるサイコロ")]
@@ -221,10 +265,6 @@ namespace Wipeseals
 
         [SerializeField, Tooltip("リマッチボタン")]
         public Button RematchButton = null;
-
-        #endregion
-        #region Private Properties
-
         #endregion
         #region Synced Properties
 
@@ -242,6 +282,24 @@ namespace Wipeseals
             set
             {
                 _progress = (int)value;
+            }
+        }
+
+        /// <summary>
+        /// ゲームの勝敗状態
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(CurrentGameJudge))]
+        public int _currentGameJudge = 0;  // (int)GameJudge.Continue;
+
+        /// <summary>
+        /// ゲームの勝敗状態
+        /// </summary>
+        public int CurrentGameJudge
+        {
+            get => _currentGameJudge;
+            set
+            {
+                _currentGameJudge = (int)value;
             }
         }
 
@@ -443,9 +501,17 @@ namespace Wipeseals
             }
         }
         #endregion
+        #region Private Variables
+
+        /// <summary>
+        /// サイコロ転がし始めてからのTimeout検知用
+        /// </summary>
+        float _diceRollStartTime = 0.0f;
+
         #endregion
 
         //////////////////////////////////////////////////////////////////////////////////////
+        /// 便利関数ほか
         #region Synced Properties Accessor
 
         /// <summary>
@@ -472,6 +538,115 @@ namespace Wipeseals
                         return PLAYER1;
                 }
             }
+        }
+
+        /// <summary>
+        /// ゲームが開始していないならtrue
+        /// </summary>
+        public bool IsGameNotReady => Progress == (int)GameProgress.Initial || Progress == (int)GameProgress.WaitEnterPlayers;
+
+        /// <summary>
+        /// ゲーム終了済ならtrue
+        /// </summary>
+        public bool IsGameEnd => (Progress == (int)GameProgress.GameEnd) || (Progress == (int)GameProgress.Aborted);
+
+        /// <summary>
+        /// 現在のプレイヤーがCPUならtrue
+        /// </summary>
+        public bool IsControlledByCpu =>
+            (CurrentPlayer == PLAYER1 && Player1Type == (int)PlayerType.CPU)
+            || (CurrentPlayer == PLAYER2 && Player2Type == (int)PlayerType.CPU);
+
+        /// <summary>
+        /// CPUしか参加していなければtrue
+        /// </summary>
+        public bool IsCpuOnly => (Player1Type == (int)PlayerType.CPU && Player2Type == (int)PlayerType.CPU);
+
+        /// <summary>
+        /// 自身がPlayer1ならtrue
+        /// </summary>
+        public bool IsMyselfPlayer1 => IsUnityDebug || Networking.LocalPlayer.playerId == Player1PlayerId;
+
+        /// <summary>
+        /// 自身がPlayer2ならtrue
+        /// </summary>
+        public bool IsMyselfPlayer2 => IsUnityDebug || Networking.LocalPlayer.playerId == Player2PlayerId;
+
+        /// <summary>
+        /// 自身が参加しているならtrue
+        /// </summary>
+        public bool IsJoinedMyself => IsMyselfPlayer1 || IsMyselfPlayer2;
+
+        /// <summary>
+        /// 現在のプレイヤーが自分ならtrue
+        /// </summary>
+        public bool IsMyTurn => (IsMyselfPlayer1 && CurrentPlayer == PLAYER1)
+         || (IsMyselfPlayer2 && CurrentPlayer == PLAYER2);
+
+        /// <summary>
+        /// DiceForRollの向きからサイコロの目を取得
+        /// </summary>
+        /// <returns></returns>
+        public int GetRolledDiceValue()
+        {
+            // DiceForRollの向き情報を取得
+            var forward = DiceForRoll.gameObject.transform.forward;
+            var up = DiceForRoll.gameObject.transform.up;
+            var right = DiceForRoll.gameObject.transform.right;
+            var back = -forward;
+            var down = -up;
+            var left = -right;
+
+            // Vector3.upとの角度が最も小さいものが上面
+            // anglesのindexはFaceDirectionと対応
+            var angles = new[] {
+                Vector3.Angle(forward, Vector3.up),
+                Vector3.Angle(back, Vector3.up),
+                Vector3.Angle(left, Vector3.up),
+                Vector3.Angle(right, Vector3.up),
+                Vector3.Angle(up, Vector3.up),
+                Vector3.Angle(down, Vector3.up),
+            };
+
+            // 最小値のインデックスを取得
+            var minIndex = 0;
+            for (var i = 1; i < angles.Length; i++)
+            {
+                if (angles[i] < angles[minIndex])
+                {
+                    minIndex = i;
+                }
+            }
+
+            // インデックスから方向を取得
+            var diceValue = 0;
+            switch ((FaceDirection)minIndex)
+            {
+                case FaceDirection.Forward:
+                    diceValue = DiceValueForFront;
+                    break;
+                case FaceDirection.Back:
+                    diceValue = DiceValueForBack;
+                    break;
+                case FaceDirection.Left:
+                    diceValue = DiceValueForLeft;
+                    break;
+                case FaceDirection.Right:
+                    diceValue = DiceValueForRight;
+                    break;
+                case FaceDirection.Up:
+                    diceValue = DiceValueForTop;
+                    break;
+                case FaceDirection.Down:
+                    diceValue = DiceValueForBottom;
+                    break;
+                default:
+                    Log(ErrorLevel.Error, $"Invalid direction: {minIndex}");
+                    break;
+            }
+
+            Log(ErrorLevel.Info, $"diceValue={diceValue} minIndex={minIndex} angles=[{angles[0]} {angles[1]} {angles[2]} {angles[3]} {angles[4]} {angles[5]}]");
+            return diceValue;
         }
 
         /// <summary>
@@ -551,7 +726,8 @@ namespace Wipeseals
             }
 
             // Accessor経由で変更してからRequestSerialization
-            Progress = (int)GameProgress.WaitEnterPlayer1;
+            Progress = (int)GameProgress.WaitEnterPlayers;
+            CurrentGameJudge = (int)GameJudge.Continue;
             SystemMessage = "Waiting for Player1";
             Player1Type = (int)PlayerType.Invalid;
             Player2Type = (int)PlayerType.Invalid;
@@ -564,29 +740,7 @@ namespace Wipeseals
             Player1DiceArrayBits = 0;
             Player2DiceArrayBits = 0;
         }
-
-        /// <summary>
-        /// Progress/SystemMsg を更新する
-        /// </summary>
-        /// <param name="progress"></param>
-        /// <param name="msg"></param>
-        void UpdateProgressWithMsg(GameProgress progress, string msg)
-        {
-            Log(ErrorLevel.Info, $"{nameof(UpdateProgressWithMsg)}: {progress}, {msg}");
-
-            // Ownerのみが変更できる。Ownerでなければ取得
-            if (!IsOwner)
-            {
-                ChangeOwner();
-            }
-
-            // Accessor経由で変更してからRequestSerialization
-            Progress = (int)progress;
-            SystemText.text = msg;
-            SyncManually();
-        }
         #endregion
-
         #region DiceArrayBits Accessor
 
         /// <summary>
@@ -615,66 +769,7 @@ namespace Wipeseals
             }
         }
 
-        void PutDice(int player, int col, int value, bool isIndexCross = true)
-        {
-            Log(ErrorLevel.Info, $"{nameof(PutDice)}: player={player}, col={col}, value={value}, isIndexCross={isIndexCross}");
-
-            // 現在のターンのプレイヤーか確認してから
-            if (player != CurrentPlayer)
-            {
-                Log(ErrorLevel.Warning, $"Invalid player number: {player}");
-                return;
-            }
-
-            var srcBits = GetDiceArrayBits(player);
-            // 指定された列の末尾に配置
-            var rowIndex = srcBits.GetColumnCount(col);
-            if (rowIndex >= DiceArrayBits.NUM_ROWS)
-            {
-                Log(ErrorLevel.Warning, $"Cannot place dice to column {col}");
-                return;
-            }
-            SetDiceArrayBits(player, srcBits.PutDice(col, rowIndex, value));
-
-            // 相手の列に同じ値がある場合、削除する
-            var opponentPlayer = player == 0 ? 1 : 0;
-            var opponentColumn = isIndexCross ? (DiceArrayBits.NUM_COLUMNS - col - 1) : col;// 列のindexは向かい合っている場合、DiceArrayBits.NUM_COLUMNS - col - 1で対向している列を取得
-
-            // 相手の列から配置した値を削除
-            SetDiceArrayBits(opponentPlayer, GetDiceArrayBits(opponentPlayer).RemoveByValue(opponentColumn, value));
-        }
-
-        /// <summary>
-        /// ゲームの勝敗を取得
-        /// </summary>
-        GameJudge CalcGameJudge(int currentTurnPlayer)
-        {
-            // 現在のターンのプレイヤーが配置後、置けなくなった時点で終了
-            if (!GetDiceArrayBits(currentTurnPlayer).IsFull())
-            {
-                // まだ置ける
-                return GameJudge.Continue;
-            }
-
-            var player1Score = GetDiceArrayBits(PLAYER1).GetTotalScore();
-            var player2Score = GetDiceArrayBits(PLAYER2).GetTotalScore();
-
-            if (player1Score > player2Score)
-            {
-                return GameJudge.Player1Win;
-            }
-            else if (player1Score < player2Score)
-            {
-                return GameJudge.Player2Win;
-            }
-            else
-            {
-                return GameJudge.Draw;
-            }
-        }
-
         #endregion
-
         #region UI Utility
 
         /// <summary>
@@ -969,51 +1064,405 @@ namespace Wipeseals
         }
         #endregion
 
+        //////////////////////////////////////////////////////////////////////////////////////
+        // Event関連
         #region Event Process
 
         /// <summary>
         /// ゲームの完全初期化。Playerなども含めてクリア
-        /// Ownerではない場合は、Ownerに通知
+        /// Ownerではない場合は取得
         /// </summary>
-        public void InitGame()
+        public void InitAllGameStatus()
         {
-            Log(ErrorLevel.Info, $"{nameof(InitGame)}");
+            Log(ErrorLevel.Info, $"{nameof(InitAllGameStatus)}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
             if (!IsOwner)
             {
-                SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner, nameof(InitGame));
-                return;
+                ChangeOwner();
             }
+
             // 変数初期化して同期
-            ResetSyncedProperties(); // state: * -> WaitEnterPlayer1
+            ResetSyncedProperties(); // state: * -> WaitEnterPlayers
+
             SyncManually();
         }
 
-        // Animation Test
-        public void OnTestAnimation1()
+
+        /// <summary>
+        /// Player参加
+        /// </summary>
+        void JoinPlayer(int player, PlayerType type, string displayName, int playerId)
         {
-            var number = UnityEngine.Random.Range(DiceArrayBits.MIN_DICE_VALUE, DiceArrayBits.MAX_DICE_VALUE + 1);
-            var refCount = UnityEngine.Random.Range(0, 4);
+            Log(ErrorLevel.Info, $"{nameof(JoinPlayer)}: player={player}, type={type}, displayName={displayName}, playerId={playerId}");
 
-            for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
             {
-                var player1RefCount = Player1DiceArrayBits.GetColumnRefCount(col);
-                var player2RefCount = Player2DiceArrayBits.GetColumnRefCount(col);
+                ChangeOwner();
+            }
 
-                for (int row = 0; row < DiceArrayBits.NUM_ROWS; row++)
+            if (player == PLAYER1)
+            {
+                Player1Type = (int)type;
+                Player1DisplayName = displayName;
+                Player1PlayerId = playerId;
+            }
+            else if (player == PLAYER2)
+            {
+                Player2Type = (int)type;
+                Player2DisplayName = displayName;
+                Player2PlayerId = playerId;
+            }
+            else
+            {
+                Log(ErrorLevel.Error, $"Invalid player number: {player}");
+            }
+
+            SyncManually();
+        }
+
+        /// <summary>
+        /// CPU Player参加
+        /// </summary>
+        /// <param name="player"></param>
+        void JoinCpuPlayer(int player)
+        {
+            Log(ErrorLevel.Info, $"{nameof(JoinCpuPlayer)}: player={player}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            if (player == PLAYER1)
+            {
+                Player1Type = (int)PlayerType.CPU;
+                Player1DisplayName = "CPU1";
+                Player1PlayerId = -1;
+            }
+            else if (player == PLAYER2)
+            {
+                Player2Type = (int)PlayerType.CPU;
+                Player2DisplayName = "CPU2";
+                Player2PlayerId = -1;
+            }
+            else
+            {
+                Log(ErrorLevel.Error, $"Invalid player number: {player}");
+            }
+
+            SyncManually();
+        }
+
+        /// <summary>
+        /// Player離脱
+        /// </summary>
+        void LeavePlayer(int player)
+        {
+            Log(ErrorLevel.Info, $"{nameof(LeavePlayer)}: player={player}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            if (player == PLAYER1)
+            {
+                Player1Type = (int)PlayerType.Invalid;
+                Player1DisplayName = "";
+                Player1PlayerId = 0;
+            }
+            else if (player == PLAYER2)
+            {
+                Player2Type = (int)PlayerType.Invalid;
+                Player2DisplayName = "";
+                Player2PlayerId = 0;
+            }
+            else
+            {
+                Log(ErrorLevel.Error, $"Invalid player number: {player}");
+            }
+
+            SyncManually();
+        }
+
+        /// <summary>
+        /// ゲーム開始
+        /// </summary>
+        void StartGame()
+        {
+            Log(ErrorLevel.Info, $"{nameof(StartGame)}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            // 盤面クリア
+            Player1DiceArrayBits = 0;
+            Player2DiceArrayBits = 0;
+            CurrentTurn = 1;
+            CurrentGameJudge = (int)GameJudge.Continue;
+
+            // ゲーム開始. どちらのターンにするかはランダム
+            Progress = UnityEngine.Random.Range(0, 2) == 0 ? (int)GameProgress.WaitPlayer1Roll : (int)GameProgress.WaitPlayer2Roll;
+            SyncManually();
+
+            // CPUなら自動で進める
+            if (IsControlledByCpu)
+            {
+                // 固定時間だとふりはじめの角度が一致する可能性があるので、ランダムに遅延させる
+                SendCustomEventDelayedSeconds(nameof(OnRollDice), ThinkTimeForCpu * (1.0f + 0.5f * UnityEngine.Random.Range(0.0f, 0.5f)));
+            }
+        }
+
+        /// <summary>
+        /// サイコロを降る
+        /// </summary>
+        void StartRoll()
+        {
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            // WaitPlayer1Roll or WaitPlayer2Roll状態だとAnimationで回しているのでその座標を転写
+            DiceForRoll.SetActive(true);
+            DiceForRoll.transform.position = DiceForReady.transform.position;
+            DiceForRoll.transform.rotation = DiceForReady.transform.rotation;
+            DiceForReady.SetBool("IsReady", false);
+            DiceForReady.gameObject.SetActive(false);
+            // 弾き飛ばす
+            DiceForRoll.gameObject.GetComponent<Rigidbody>().AddForce(
+                new Vector3(
+                    DiceRollForceRange * UnityEngine.Random.Range(-1, 1),
+                    DiceRollForceRange * UnityEngine.Random.Range(-1, 1),
+                    DiceRollForceRange * UnityEngine.Random.Range(-1, 1)
+                ),
+                ForceMode.VelocityChange
+            );
+
+            // ステータス更新
+            if (CurrentPlayer == PLAYER1)
+            {
+                Progress = (int)GameProgress.Player1Rolling;
+            }
+            else if (CurrentPlayer == PLAYER2)
+            {
+                Progress = (int)GameProgress.Player2Rolling;
+            }
+
+            // 吹き飛び対策
+            _diceRollStartTime = Time.time;
+
+            // サイコロの見張り役は自分だけがやれば良い
+            SendCustomEventDelayedSeconds(nameof(OnPollingRoll), PollingSecForRolling);
+        }
+
+        /// <summary>
+        /// サイコロを転がしている間のポーリング処理
+        /// </summary>
+        void PollingRoll()
+        {
+            Log(ErrorLevel.Info, $"{nameof(PollingRoll)} Progress={Progress} CurrentPlayer={CurrentPlayer}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            var isTimeout = (Time.time - _diceRollStartTime) > DiceRollTimeoutSec;
+            if (isTimeout)
+            {
+                // タイムアウトした場合は現在の向きを取得
+                Log(ErrorLevel.Warning, $"{nameof(PollingRoll)}: Timeout!");
+            }
+            else
+            {
+                // Rigidbodyが止まっていない場合は再度ポーリング
+                if (!DiceForRoll.gameObject.GetComponent<Rigidbody>().IsSleeping())
                 {
-                    var dice1 = Player1ColDiceArrayList[col][row];
-                    var dice2 = Player2ColDiceArrayList[col][row];
-
-                    dice1.SetInteger("Number", number);
-                    dice1.SetInteger("RefCount", refCount);
-                    dice2.SetInteger("Number", number);
-                    dice2.SetInteger("RefCount", refCount);
+                    SendCustomEventDelayedSeconds(nameof(OnPollingRoll), PollingSecForRolling);
+                    return;
                 }
             }
-            SendCustomEventDelayedSeconds(nameof(OnTestAnimation1), 1.5f);
-        }
-        #endregion
 
+            // Timeout時間クリア
+            _diceRollStartTime = 0.0f;
+
+            // サイコロの目が決定したら、その値をセットしPlayerに配置先を選ばせる
+            RolledDiceValue = GetRolledDiceValue();
+            if (CurrentPlayer == PLAYER1)
+            {
+                Progress = (int)GameProgress.WaitPlayer1Put;
+            }
+            else if (CurrentPlayer == PLAYER2)
+            {
+                Progress = (int)GameProgress.WaitPlayer2Put;
+            }
+
+            Log(ErrorLevel.Info, $"{nameof(PollingRoll)}: RolledDiceValue={RolledDiceValue} Player={CurrentPlayer}");
+            SyncManually();
+
+            // CPUなら自動で進める. 可変長にできないので埋めておく
+            var usableEventNames = new[] { "", "", "" };
+            var eventCount = 0;
+            if (IsControlledByCpu)
+            {
+                if (CurrentPlayer == PLAYER1)
+                {
+                    var events = new[] { nameof(OnPutP1C1), nameof(OnPutP1C2), nameof(OnPutP1C3) };
+                    for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+                    {
+                        // まだ配置できる列がある場合のみイベントを登録
+                        if (!Player1DiceArrayBits.IsColumnFull(col))
+                        {
+                            usableEventNames[eventCount] = events[col];
+                            eventCount++;
+                        }
+                    }
+                }
+                else if (CurrentPlayer == PLAYER2)
+                {
+                    var events = new[] { nameof(OnPutP2C1), nameof(OnPutP2C2), nameof(OnPutP2C3) };
+                    for (int col = 0; col < DiceArrayBits.NUM_COLUMNS; col++)
+                    {
+                        // まだ配置できる列がある場合のみイベントを登録
+                        if (!Player2DiceArrayBits.IsColumnFull(col))
+                        {
+                            usableEventNames[eventCount] = events[col];
+                            eventCount++;
+                        }
+                    }
+                }
+            }
+            // ランダムで選択するイベント発行
+            if (eventCount > 0)
+            {
+                var eventName = usableEventNames[UnityEngine.Random.Range(0, eventCount)];
+                SendCustomEventDelayedSeconds(eventName, ThinkTimeForCpu);
+            }
+        }
+
+        /// <summary>
+        /// サイコロを配置する
+        /// </summary>
+        void PutDice(int col)
+        {
+            var player = CurrentPlayer;
+            var value = RolledDiceValue;
+
+            Log(ErrorLevel.Info, $"{nameof(PutDice)}: player={player}, col={col}, value={value}, isIndexCross={IsColumnIndexCrossed}");
+
+            var srcBits = GetDiceArrayBits(player);
+            // 指定された列の末尾に配置
+            var rowIndex = srcBits.GetColumnCount(col);
+            if (rowIndex >= DiceArrayBits.NUM_ROWS)
+            {
+                Log(ErrorLevel.Warning, $"Cannot place dice to column {col}");
+                return;
+            }
+            SetDiceArrayBits(player, srcBits.PutDice(col, rowIndex, value));
+
+            // 相手の列に同じ値がある場合、削除する
+            var opponentPlayer = player == PLAYER1 ? PLAYER2 : PLAYER1;
+            var opponentColumn = IsColumnIndexCrossed ? (DiceArrayBits.NUM_COLUMNS - col - 1) : col;// 列のindexは向かい合っている場合、DiceArrayBits.NUM_COLUMNS - col - 1で対向している列を取得
+
+            // 相手の列から配置した値を削除
+            SetDiceArrayBits(opponentPlayer, GetDiceArrayBits(opponentPlayer).RemoveByValue(opponentColumn, value));
+
+            // 次のステップへ
+            if (CurrentPlayer == PLAYER1)
+            {
+                Progress = (int)GameProgress.WaitPlayer1Calc;
+            }
+            else if (CurrentPlayer == PLAYER2)
+            {
+                Progress = (int)GameProgress.WaitPlayer2Calc;
+            }
+
+            SyncManually();
+
+            // ゲームの勝敗決定も自分が行えばよいのでローカルイベント発行
+            SendCustomEventDelayedSeconds(nameof(OnJudgeFinishGame), ThinkTimeForCpu);
+        }
+
+        /// <summary>
+        /// ゲームの勝敗を取得
+        /// </summary>
+        void JudgeFinishGame()
+        {
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
+
+            // 左詰めの処理していないのでここでやる（PutDice時の消えるアニメーション流したいため)
+            SetDiceArrayBits(PLAYER1, GetDiceArrayBits(PLAYER1).LeftJustify());
+            SetDiceArrayBits(PLAYER2, GetDiceArrayBits(PLAYER2).LeftJustify());
+
+            // まだ置けるなら続行
+            if (!GetDiceArrayBits(CurrentPlayer).IsFull())
+            {
+                // まだ置ける
+                CurrentGameJudge = (int)GameJudge.Continue;
+                // 次のプレイヤーに進む
+                if (CurrentPlayer == PLAYER1)
+                {
+                    Progress = (int)GameProgress.WaitPlayer2Roll;
+                }
+                else if (CurrentPlayer == PLAYER2)
+                {
+                    Progress = (int)GameProgress.WaitPlayer1Roll;
+                }
+                CurrentTurn++;
+                SyncManually();
+
+                // Progress更新した時点でCurrentPlayerの戻り値が変わる。CPUならRollするトリガを与える
+                if (CurrentPlayer == PLAYER1 && Player1Type == (int)PlayerType.CPU)
+                {
+                    SendCustomEventDelayedSeconds(nameof(OnRollDice), ThinkTimeForCpu);
+                }
+                else if (CurrentPlayer == PLAYER2 && Player2Type == (int)PlayerType.CPU)
+                {
+                    SendCustomEventDelayedSeconds(nameof(OnRollDice), ThinkTimeForCpu);
+                }
+                return;
+            }
+
+            // スコア計算して終わり
+            var player1Score = GetDiceArrayBits(PLAYER1).GetTotalScore();
+            var player2Score = GetDiceArrayBits(PLAYER2).GetTotalScore();
+
+            if (player1Score > player2Score)
+            {
+                CurrentGameJudge = (int)GameJudge.Player1Win;
+            }
+            else if (player1Score < player2Score)
+            {
+                CurrentGameJudge = (int)GameJudge.Player2Win;
+            }
+            else
+            {
+                CurrentGameJudge = (int)GameJudge.Draw;
+            }
+
+            // TODO: UdonChips対応?
+
+            // ゲーム終了
+            Progress = (int)GameProgress.GameEnd;
+            SyncManually();
+        }
+
+
+        #endregion
         #region Event Handlers
         void Start()
         {
@@ -1022,7 +1471,7 @@ namespace Wipeseals
 
         public override void OnPlayerJoined(VRCPlayerApi player)
         {
-            Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {player?.displayName} {IsOwner}");
+            Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {IsOwner}");
 
             // 初期化必要な場合. Startで実行されないケース及びNetwork関連が初期化中の対策
             if (Progress == (int)GameProgress.Initial)
@@ -1042,7 +1491,7 @@ namespace Wipeseals
                 // 初期化直後かつOwnerの1回に限り、初期化処理を行う
                 if (IsOwner)
                 {
-                    InitGame();
+                    InitAllGameStatus();
                 }
             }
 
@@ -1109,6 +1558,7 @@ namespace Wipeseals
             {
                 DiceForRoll.SetActive(false);
                 DiceForRoll.transform.position = DiceForReady.transform.position;
+                DiceForRoll.transform.rotation = DiceForReady.transform.rotation;
             }
             else
             {
@@ -1145,13 +1595,13 @@ namespace Wipeseals
                 {
                     var dice1 = Player1ColDiceArrayList[col][row];
                     dice1.gameObject.SetActive(true); // 表示はずっとする
-                    dice1.SetInteger("Number", Player1DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                     dice1.SetInteger("RefCount", player1RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+                    dice1.SetInteger("Number", Player1DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
 
                     var dice2 = Player2ColDiceArrayList[col][row];
                     dice2.gameObject.SetActive(true); // 表示はずっとする
-                    dice2.SetInteger("Number", Player2DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                     dice2.SetInteger("RefCount", player2RefCount[row]); // Animatorでサイコロの状態が変わる。0なら非表示2,3はアクセント表示が追加
+                    dice2.SetInteger("Number", Player2DiceArrayBits.GetDice(col, row)); // Animatorでサイコロ上面の向きが変わる
                 }
             }
 
@@ -1173,11 +1623,8 @@ namespace Wipeseals
                 case GameProgress.Initial:
                     SystemText.text = "Booting...";
                     break;
-                case GameProgress.WaitEnterPlayer1:
-                    SystemText.text = "Waiting for Player1";
-                    break;
-                case GameProgress.WaitEnterPlayer2:
-                    SystemText.text = "Waiting for Player2";
+                case GameProgress.WaitEnterPlayers:
+                    SystemText.text = "Waiting for Enter Players";
                     break;
                 case GameProgress.GameStart:
                     SystemText.text = "Game Start!";
@@ -1190,7 +1637,7 @@ namespace Wipeseals
                     SystemText.text = "Player1: Rolling the dice...";
                     break;
                 case GameProgress.WaitPlayer1Put:
-                    SystemText.text = $"Player1: Put the dice! dice={RolledDiceValue}";
+                    SystemText.text = $"Player1: Put the dice '{RolledDiceValue}'!";
                     break;
                 case GameProgress.WaitPlayer1Calc:
                     SystemText.text = "Player1: Calculating...";
@@ -1203,14 +1650,27 @@ namespace Wipeseals
                     SystemText.text = "Player2: Rolling the dice...";
                     break;
                 case GameProgress.WaitPlayer2Put:
-                    SystemText.text = $"Player2: Put the dice! dice={RolledDiceValue}";
+                    SystemText.text = $"Player2: Put the dice '{RolledDiceValue}'!";
                     break;
                 case GameProgress.WaitPlayer2Calc:
                     SystemText.text = "Player2: Calculating...";
                     break;
 
                 case GameProgress.GameEnd:
-                    SystemText.text = $"Game End! {CalcGameJudge(CurrentPlayer)}";
+                    switch ((GameJudge)CurrentGameJudge)
+                    {
+                        case GameJudge.Player1Win:
+                            SystemText.text = "Player1 Win!";
+                            break;
+                        case GameJudge.Player2Win:
+                            SystemText.text = "Player2 Win!";
+                            break;
+                        case GameJudge.Draw:
+                            SystemText.text = "Draw!";
+                            break;
+                        default:
+                            break;
+                    }
                     break;
                 case GameProgress.Aborted:
                     SystemText.text = "Game Aborted!";
@@ -1229,10 +1689,12 @@ namespace Wipeseals
             Player2EntryButton.interactable = (Player2PlayerId == 0);
             Player2CPUEntryButton.interactable = (Player2PlayerId == 0);
 
-            // リセット/リマッチボタンはいたずら防止にPlayerどちらかしか押せないようにする
-            bool isResetable = (IsUnityDebug) || (Networking.LocalPlayer.playerId == Player1PlayerId || Networking.LocalPlayer.playerId == Player2PlayerId);
+            // リセットはいたずら防止目的で設定。CPUだけの試合、もしくはゲーム開始前なら操作可能。それ以外はPlayerのみ押せる
+            var isResetable = IsCpuOnly || IsGameNotReady || IsJoinedMyself;
             ResetButton.interactable = isResetable;
-            RematchButton.interactable = isResetable;
+            // リマッチはリセットの条件に加え、ゲーム終了後のみ押せる
+            // 途中で最初に戻って流れ出す、もしくはPlayer未設定のまま開始される対策
+            RematchButton.interactable = isResetable && IsGameEnd;
         }
 
         /// <summary>
@@ -1241,7 +1703,15 @@ namespace Wipeseals
         public void OnPlayer1Entry()
         {
             Log(ErrorLevel.Info, nameof(OnPlayer1Entry));
-            // TODO: Player1の参加処理
+
+            // 参加
+            JoinPlayer(PLAYER1, PlayerType.Human, Networking.LocalPlayer.displayName, Networking.LocalPlayer.playerId);
+
+            // Player2が参加している場合は、ゲーム開始
+            if (Player2PlayerId != 0)
+            {
+                StartGame();
+            }
         }
 
         /// <summary>
@@ -1250,7 +1720,15 @@ namespace Wipeseals
         public void OnPlayer1CPUEntry()
         {
             Log(ErrorLevel.Info, nameof(OnPlayer1CPUEntry));
-            // TODO: Player1のCPU参加処理
+
+            // CPU参加
+            JoinCpuPlayer(PLAYER1);
+
+            // Player2が参加している場合は、ゲーム開始
+            if (Player2PlayerId != 0)
+            {
+                StartGame();
+            }
         }
 
         /// <summary>
@@ -1259,7 +1737,15 @@ namespace Wipeseals
         public void OnPlayer2Entry()
         {
             Log(ErrorLevel.Info, nameof(OnPlayer2Entry));
-            // TODO: Player2の参加処理
+
+            // 参加
+            JoinPlayer(PLAYER2, PlayerType.Human, Networking.LocalPlayer.displayName, Networking.LocalPlayer.playerId);
+
+            // Player1が参加している場合は、ゲーム開始
+            if (Player1PlayerId != 0)
+            {
+                StartGame();
+            }
         }
 
         /// <summary>
@@ -1268,7 +1754,15 @@ namespace Wipeseals
         public void OnPlayer2CPUEntry()
         {
             Log(ErrorLevel.Info, nameof(OnPlayer2CPUEntry));
-            // TODO: Player2のCPU参加処理
+
+            // CPU参加
+            JoinCpuPlayer(PLAYER2);
+
+            // Player1が参加している場合は、ゲーム開始
+            if (Player1PlayerId != 0)
+            {
+                StartGame();
+            }
         }
 
         /// <summary>
@@ -1277,7 +1771,9 @@ namespace Wipeseals
         public void OnRematch()
         {
             Log(ErrorLevel.Info, nameof(OnRematch));
-            // TODO: リマッチ処理
+
+            // Playerは保持したままゲームをリセットして再開
+            StartGame();
         }
 
         /// <summary>
@@ -1286,7 +1782,9 @@ namespace Wipeseals
         public void OnReset()
         {
             Log(ErrorLevel.Info, nameof(OnReset));
-            // TODO: リセット処理
+
+            // Playerもリセット。参加するところからやり直し
+            InitAllGameStatus();
         }
 
         /// <summary>
@@ -1295,6 +1793,20 @@ namespace Wipeseals
         public void OnRollDice()
         {
             Log(ErrorLevel.Info, nameof(OnRollDice));
+
+            // サイコロを転がしを開始
+            StartRoll();
+        }
+
+        /// <summary>
+        /// サイコロの値を更新するイベントハンドラ
+        /// </summary>
+        public void OnPollingRoll()
+        {
+            Log(ErrorLevel.Info, nameof(OnPollingRoll));
+
+            // サイコロの値を決定するために観測
+            PollingRoll();
         }
 
         /// <summary>
@@ -1303,7 +1815,16 @@ namespace Wipeseals
         public void OnPutP1C1()
         {
             Log(ErrorLevel.Info, nameof(OnPutP1C1));
-            // TODO: サイコロを配置する
+
+            // 現在のPlayerと一致しているかは見ておく
+            if (CurrentPlayer != PLAYER1)
+            {
+                Log(ErrorLevel.Warning, $"{nameof(OnPutP1C1)}: Invalid Player={CurrentPlayer}");
+                return;
+            }
+
+            // サイコロを配置する
+            PutDice(0);
         }
 
         /// <summary>
@@ -1312,7 +1833,16 @@ namespace Wipeseals
         public void OnPutP1C2()
         {
             Log(ErrorLevel.Info, nameof(OnPutP1C2));
-            // TODO: サイコロを配置する
+
+            // 現在のPlayerと一致しているかは見ておく
+            if (CurrentPlayer != PLAYER1)
+            {
+                Log(ErrorLevel.Warning, $"{nameof(OnPutP1C2)}: Invalid Player={CurrentPlayer}");
+                return;
+            }
+
+            // サイコロを配置する
+            PutDice(1);
         }
 
         /// <summary>
@@ -1321,7 +1851,16 @@ namespace Wipeseals
         public void OnPutP1C3()
         {
             Log(ErrorLevel.Info, nameof(OnPutP1C3));
-            // TODO: サイコロを配置する
+
+            // 現在のPlayerと一致しているかは見ておく
+            if (CurrentPlayer != PLAYER1)
+            {
+                Log(ErrorLevel.Warning, $"{nameof(OnPutP1C3)}: Invalid Player={CurrentPlayer}");
+                return;
+            }
+
+            // サイコロを配置する
+            PutDice(2);
         }
 
         /// <summary>
@@ -1330,7 +1869,17 @@ namespace Wipeseals
         public void OnPutP2C1()
         {
             Log(ErrorLevel.Info, nameof(OnPutP2C1));
-            // TODO: サイコロを配置する
+
+            // 現在のPlayerと一致しているかは見ておく
+            if (CurrentPlayer != PLAYER2)
+            {
+                Log(ErrorLevel.Warning, $"{nameof(OnPutP2C1)}: Invalid Player={CurrentPlayer}");
+                return;
+            }
+
+            // サイコロを配置する
+            PutDice(0);
+
         }
 
         /// <summary>
@@ -1339,7 +1888,16 @@ namespace Wipeseals
         public void OnPutP2C2()
         {
             Log(ErrorLevel.Info, nameof(OnPutP2C2));
-            // TODO: サイコロを配置する
+
+            // 現在のPlayerと一致しているかは見ておく
+            if (CurrentPlayer != PLAYER2)
+            {
+                Log(ErrorLevel.Warning, $"{nameof(OnPutP2C2)}: Invalid Player={CurrentPlayer}");
+                return;
+            }
+
+            // サイコロを配置する
+            PutDice(1);
         }
 
         /// <summary>
@@ -1348,9 +1906,25 @@ namespace Wipeseals
         public void OnPutP2C3()
         {
             Log(ErrorLevel.Info, nameof(OnPutP2C3));
-            // TODO: サイコロを配置する
+
+            // 現在のPlayerと一致しているかは見ておく
+            if (CurrentPlayer != PLAYER2)
+            {
+                Log(ErrorLevel.Warning, $"{nameof(OnPutP2C3)}: Invalid Player={CurrentPlayer}");
+                return;
+            }
+
+            // サイコロを配置する
+            PutDice(2);
         }
 
+        public void OnJudgeFinishGame()
+        {
+            Log(ErrorLevel.Info, nameof(OnJudgeFinishGame));
+
+            // ゲームの勝敗を判定
+            JudgeFinishGame();
+        }
         #endregion
     }
 }
