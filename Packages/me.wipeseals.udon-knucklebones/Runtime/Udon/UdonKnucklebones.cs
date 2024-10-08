@@ -1752,6 +1752,11 @@ namespace Wipeseals
             Player1CPUEntryButton.interactable = (Player1PlayerId == 0);
             Player2EntryButton.interactable = (Player2PlayerId == 0);
             Player2CPUEntryButton.interactable = (Player2PlayerId == 0);
+            // Join済なら選んでいない方を消す
+            Player1EntryButton.gameObject.SetActive((Player1PlayerId == 0) || (Player1Type == (int)PlayerType.Human));
+            Player1CPUEntryButton.gameObject.SetActive((Player1PlayerId == 0) || (Player1Type == (int)PlayerType.CPU));
+            Player2EntryButton.gameObject.SetActive((Player2PlayerId == 0) || (Player2Type == (int)PlayerType.Human));
+            Player2CPUEntryButton.gameObject.SetActive((Player2PlayerId == 0) || (Player2Type == (int)PlayerType.CPU));
 
             // リセットはいたずら防止目的で設定。CPUだけの試合、もしくはゲーム開始前なら操作可能。それ以外はPlayerのみ押せる
             var isResetable = IsCpuOnly || IsGameNotReady || IsJoinedMyself;
