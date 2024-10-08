@@ -157,7 +157,7 @@ namespace Wipeseals
 
 
         [SerializeField, Tooltip("CPUがイベントを進める速度")]
-        public float ThinkTimeForCpu = 1.0f;
+        public float ThinkTimeForCpu = 1.5f;
 
 
         [SerializeField, Tooltip("サイコロの目決定用Polling時間")]

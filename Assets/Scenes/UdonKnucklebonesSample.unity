@@ -4150,11 +4150,11 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1132024059}
   IsDebug: 1
-  ThinkTimeForCpu: 1
+  ThinkTimeForCpu: 1.5
   PollingSecForRolling: 0.5
   IsColumnIndexCrossed: 1
-  DiceRollForceRange: 1
-  DiceRollTimeoutSec: 10
+  DiceRollForceRange: 1.5
+  DiceRollTimeoutSec: 5
   DiceValueForFront: 1
   DiceValueForBack: 6
   DiceValueForRight: 5
