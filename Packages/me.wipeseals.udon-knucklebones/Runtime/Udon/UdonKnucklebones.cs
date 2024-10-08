@@ -161,16 +161,16 @@ namespace Wipeseals
 
 
         [SerializeField, Tooltip("サイコロの目決定用Polling時間")]
-        public float PollingSecForRolling = 0.5f;
+        public float PollingSecForRolling = 0.2f;
 
         [SerializeField, Tooltip("Player1/2間で列番号が正面で一致しない(1,2,3 <-> 3,2,1)ときにtrue")]
         public bool IsColumnIndexCrossed = true;
 
         [SerializeField, Tooltip("サイコロを転がすときの力の強さ。ForceMode.VelovicityChangeで加速度を与える")]
-        public float DiceRollForceRange = 1.0f;
+        public float DiceRollForceRange = 1.5f;
 
         [SerializeField, Tooltip("サイコロ転がしのタイムアウト時間。吹き飛んでしまったときなどの対策")]
-        public float DiceRollTimeoutSec = 10.0f;
+        public float DiceRollTimeoutSec = 5.0f;
 
         [Header("Dice Configuration")]
         [SerializeField, Tooltip("+Z方向のサイコロの目")]
@@ -500,6 +500,44 @@ namespace Wipeseals
                 _player2DiceArrayBits = value;
             }
         }
+
+        /// <summary>
+        /// 転がしたサイコロの位置
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(DiceRollPosition))]
+        public Vector3 _diceRollPosition = Vector3.zero;
+
+        /// <summary>
+        /// 転がしたサイコロの位置
+        /// </summary>
+        public Vector3 DiceRollPosition
+        {
+            get => _diceRollPosition;
+            set
+            {
+                _diceRollPosition = value;
+            }
+        }
+
+        /// <summary>
+        /// 転がしたサイコロの向き
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(DiceRollRotation))]
+        public Quaternion _diceRollRotation = Quaternion.identity;
+
+        /// <summary>
+        /// 転がしたサイコロの向き
+        /// </summary>
+        public Quaternion DiceRollRotation
+        {
+            get => _diceRollRotation;
+            set
+            {
+                _diceRollRotation = value;
+            }
+        }
+
+
         #endregion
         #region Private Variables
 
@@ -739,6 +777,8 @@ namespace Wipeseals
             CurrentTurn = 1;
             Player1DiceArrayBits = 0;
             Player2DiceArrayBits = 0;
+            DiceRollPosition = Vector3.zero;
+            DiceRollRotation = Quaternion.identity;
         }
         #endregion
         #region DiceArrayBits Accessor
@@ -1246,6 +1286,9 @@ namespace Wipeseals
                 ),
                 ForceMode.VelocityChange
             );
+            // 同期用の座標にも転写
+            DiceRollPosition = DiceForRoll.transform.position;
+            DiceRollRotation = DiceForRoll.transform.rotation;
 
             // ステータス更新
             if (CurrentPlayer == PLAYER1)
@@ -1277,6 +1320,10 @@ namespace Wipeseals
                 ChangeOwner();
             }
 
+            // ObjectSyncを付与していないので手動同期
+            DiceRollPosition = DiceForRoll.transform.position;
+            DiceRollRotation = DiceForRoll.transform.rotation;
+
             var isTimeout = (Time.time - _diceRollStartTime) > DiceRollTimeoutSec;
             if (isTimeout)
             {
@@ -1288,6 +1335,9 @@ namespace Wipeseals
                 // Rigidbodyが止まっていない場合は再度ポーリング
                 if (!DiceForRoll.gameObject.GetComponent<Rigidbody>().IsSleeping())
                 {
+                    // 同期用
+                    SyncManually();
+                    // 自身のイベントを再度呼び出し
                     SendCustomEventDelayedSeconds(nameof(OnPollingRoll), PollingSecForRolling);
                     return;
                 }
@@ -1359,6 +1409,12 @@ namespace Wipeseals
             var value = RolledDiceValue;
 
             Log(ErrorLevel.Info, $"{nameof(PutDice)}: player={player}, col={col}, value={value}, isIndexCross={IsColumnIndexCrossed}");
+
+            // Ownerのみが変更できる。Ownerでなければ取得
+            if (!IsOwner)
+            {
+                ChangeOwner();
+            }
 
             var srcBits = GetDiceArrayBits(player);
             // 指定された列の末尾に配置
@@ -1544,17 +1600,18 @@ namespace Wipeseals
                 return;
             }
 
-            // 頭上で回転するサイコロは、Roll待ちのケースでのみ表示。Userが触れるのはここだけ
-            // Unity DebugだとNetworking.LocalPlayerが取得できないので無視
-            bool isRollReady = (IsUnityDebug)
+            // 頭上で回転するサイコロは、Roll待ちのケースでのみ表示。
+            // Use可能なのは現在のPlayerのみ
+            bool isVisibleRollReady = (Progress == (int)GameProgress.WaitPlayer1Roll) || (Progress == (int)GameProgress.WaitPlayer2Roll);
+            DiceForReady.gameObject.SetActive(isVisibleRollReady);
+            DiceForReady.SetBool("IsReady", isVisibleRollReady);
+            bool isRollable = (IsUnityDebug)
                 || (Networking.LocalPlayer.playerId == Player1PlayerId && Progress == (int)GameProgress.WaitPlayer1Roll)
                 || (Networking.LocalPlayer.playerId == Player2PlayerId && Progress == (int)GameProgress.WaitPlayer2Roll);
-            DiceForReady.gameObject.SetActive(isRollReady);
-            DiceForReady.SetBool("IsReady", isRollReady);
-            DiceRollCollider.IsEventSendable = isRollReady;
+            DiceRollCollider.IsEventSendable = isRollable;
 
             // 転がす前の場合は、転がしたあとのサイコロは非表示かつ場所リセット
-            if (isRollReady)
+            if (isVisibleRollReady || isRollable)
             {
                 DiceForRoll.SetActive(false);
                 DiceForRoll.transform.position = DiceForReady.transform.position;
@@ -1568,6 +1625,13 @@ namespace Wipeseals
                              || (Progress == (int)GameProgress.WaitPlayer1Put)
                              || (Progress == (int)GameProgress.WaitPlayer1Put);
                 DiceForRoll.SetActive(isRolled);
+
+                // 転がし中かつOwnerではない場合は、Ownerからの座標を転写
+                if (!IsOwner && isRolled)
+                {
+                    DiceForRoll.transform.position = DiceRollPosition;
+                    DiceForRoll.transform.rotation = DiceRollRotation;
+                }
             }
 
             // Player1の配置ができるのは、Player1の配置待ちの場合

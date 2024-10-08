@@ -4227,6 +4227,8 @@ MonoBehaviour:
   _currentTurn: 1
   _player1DiceArrayBits: 0
   _player2DiceArrayBits: 0
+  _diceRollPosition: {x: 0, y: 0, z: 0}
+  _diceRollRotation: {x: 0, y: 0, z: 0, w: 1}
 --- !u!1 &1151187826 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7417802152416222445, guid: 86edf83cae6f79543a340cbd8e415192,
@@ -9089,12 +9091,12 @@ MonoBehaviour:
   useAssignedLayers: 0
   DynamicPrefabs: []
   DynamicMaterials:
-  - {fileID: 2100000, guid: 1d120b2eb27fb9749bb96284e9ceb8f2, type: 2}
-  - {fileID: 2100000, guid: 23cdcb341ff7a7a41b284c18d1c58082, type: 2}
   - {fileID: 2100000, guid: d7fa91b34a68e4445835c70b9f1543c3, type: 2}
-  - {fileID: 2100000, guid: d6d50fb7bc8cb6446a78deb7666cd528, type: 2}
+  - {fileID: 2100000, guid: 23cdcb341ff7a7a41b284c18d1c58082, type: 2}
+  - {fileID: 2100000, guid: 1d120b2eb27fb9749bb96284e9ceb8f2, type: 2}
   - {fileID: 2100000, guid: 64555b7b99e67554184836902ecd0ca0, type: 2}
   - {fileID: 2100000, guid: 90216b2a4da02ad47b74be780128e668, type: 2}
+  - {fileID: 2100000, guid: d6d50fb7bc8cb6446a78deb7666cd528, type: 2}
   - {fileID: 2100000, guid: 5e2b0ebd8dba8564c87d48bd5436b78c, type: 2}
   LightMapsNear: []
   LightMapsFar: []
