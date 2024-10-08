@@ -1623,7 +1623,7 @@ namespace Wipeseals
                 bool isRolled = (Progress == (int)GameProgress.Player1Rolling)
                              || (Progress == (int)GameProgress.Player2Rolling)
                              || (Progress == (int)GameProgress.WaitPlayer1Put)
-                             || (Progress == (int)GameProgress.WaitPlayer1Put);
+                             || (Progress == (int)GameProgress.WaitPlayer2Put);
                 DiceForRoll.SetActive(isRolled);
 
                 // 転がし中かつOwnerではない場合は、Ownerからの座標を転写
