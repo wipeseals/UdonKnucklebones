@@ -169,7 +169,7 @@ AudioReverbZone:
   m_GameObject: {fileID: 196478734}
   m_Enabled: 1
   m_MinDistance: 0
-  m_MaxDistance: 5
+  m_MaxDistance: 10
   m_ReverbPreset: 4
   m_Room: -1000
   m_RoomHF: -1200
@@ -6330,7 +6330,7 @@ PrefabInstance:
     - target: {fileID: 2023334853777676235, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
       propertyPath: m_Volume
-      value: 0.6
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: 2488902340417797164, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
@@ -6395,7 +6395,7 @@ PrefabInstance:
     - target: {fileID: 6359482601441988617, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
       propertyPath: Far
-      value: 30
+      value: 40
       objectReference: {fileID: 0}
     - target: {fileID: 6359482601441988617, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
