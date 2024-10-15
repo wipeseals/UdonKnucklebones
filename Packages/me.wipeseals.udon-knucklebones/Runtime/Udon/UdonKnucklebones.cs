@@ -265,6 +265,20 @@ namespace Wipeseals
 
         [SerializeField, Tooltip("リマッチボタン")]
         public Button RematchButton = null;
+
+        [Header("Sound Effects")]
+        [SerializeField, Tooltip("サイコロ転がし音音源")]
+        public AudioClip DiceRollAudioClip = null;
+
+        [SerializeField, Tooltip("サイコロ転がし音の再生用")]
+        public AudioSource DiceRollAudioSource = null;
+
+        [SerializeField, Tooltip("サイコロ配置音音源")]
+        public AudioClip DicePutAudioClip = null;
+
+        [SerializeField, Tooltip("サイコロ配置音の再生用")]
+        public AudioSource DicePutAudioSource = null;
+
         #endregion
         #region Synced Properties
 
@@ -1000,6 +1014,26 @@ namespace Wipeseals
                 return false;
             }
 
+            if (DiceRollAudioClip == null)
+            {
+                msg = $"{nameof(DiceRollAudioClip)} is not set!";
+                return false;
+            }
+            if (DiceRollAudioSource == null)
+            {
+                msg = $"{nameof(DiceRollAudioSource)} is not set!";
+                return false;
+            }
+            if (DicePutAudioClip == null)
+            {
+                msg = $"{nameof(DicePutAudioClip)} is not set!";
+                return false;
+            }
+            if (DicePutAudioSource == null)
+            {
+                msg = $"{nameof(DicePutAudioSource)} is not set!";
+                return false;
+            }
 
             // All checks passed
             msg = "Setup is complete!";
@@ -1014,8 +1048,8 @@ namespace Wipeseals
             Log(ErrorLevel.Info, $"{nameof(ResetAllUIState)}");
 
             // DiceForReadyのAnimationをリセット
-            DiceForReady.gameObject.SetActive(true);
-            DiceForReady.SetBool("IsReady", true);
+            DiceForReady.gameObject.SetActive(false);
+            DiceForReady.SetBool("IsReady", false);
 
             // DiceRollColliderを無効化
             DiceRollCollider.IsEventSendable = false;
@@ -1041,7 +1075,7 @@ namespace Wipeseals
             {
                 foreach (var dice in diceArray)
                 {
-                    dice.gameObject.SetActive(true);
+                    dice.gameObject.SetActive(false);
                     dice.SetInteger("Number", 0);
                     dice.SetInteger("RefCount", 0);
                 }
@@ -1051,7 +1085,7 @@ namespace Wipeseals
             {
                 foreach (var dice in diceArray)
                 {
-                    dice.gameObject.SetActive(true);
+                    dice.gameObject.SetActive(false);
                     dice.SetInteger("Number", 0);
                     dice.SetInteger("RefCount", 0);
                 }
@@ -1075,15 +1109,15 @@ namespace Wipeseals
             TurnText.text = "01";
 
             // システムメッセージをリセット
-            SystemText.text = "Ready";
+            SystemText.text = "Initialize";
 
-            // Player1のボタンを有効化
-            Player1EntryButton.interactable = true;
-            Player1CPUEntryButton.interactable = true;
+            // Player1のボタンを無効化
+            Player1EntryButton.interactable = false;
+            Player1CPUEntryButton.interactable = false;
 
-            // Player2のボタンを有効化
-            Player2EntryButton.interactable = true;
-            Player2CPUEntryButton.interactable = true;
+            // Player2のボタンを無効化
+            Player2EntryButton.interactable = false;
+            Player2CPUEntryButton.interactable = false;
 
             // リセットボタンを無効化
             ResetButton.interactable = false;
@@ -1296,6 +1330,9 @@ namespace Wipeseals
                 ChangeOwner();
             }
 
+            // サイコロの音を鳴らす。これはメインシーケンスとは無関係にイベント発生
+            SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnPlayOneshotForRoll));
+
             // WaitPlayer1Roll or WaitPlayer2Roll状態だとAnimationで回しているのでその座標を転写
             DiceForRoll.SetActive(true);
             DiceForRoll.transform.position = DiceForReady.transform.position;
@@ -1440,6 +1477,9 @@ namespace Wipeseals
             {
                 ChangeOwner();
             }
+
+            // サイコロの音を鳴らす。これはメインシーケンスとは無関係にイベント発生
+            SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnPlayOneshotForPut));
 
             var srcBits = GetDiceArrayBits(player);
             // 指定された列の末尾に配置
@@ -2120,6 +2160,43 @@ namespace Wipeseals
             // ゲームの勝敗を判定
             JudgeFinishGame();
         }
+
+        /// <summary>
+        /// サイコロを転がしの効果音を再生するイベント
+        /// メインのシーケンスとは別に再生だけのイベントを送出
+        /// </summary>
+        public void OnPlayOneshotForRoll()
+        {
+            Log(ErrorLevel.Info, nameof(OnPlayOneshotForRoll));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
+            // サイコロを転がしの効果音を再生
+            DiceRollAudioSource.PlayOneShot(DiceRollAudioClip);
+        }
+
+        /// <summary>
+        /// サイコロを配置の効果音を再生するイベント
+        /// メインのシーケンスとは別に再生だけのイベントを送出
+        /// </summary>
+        public void OnPlayOneshotForPut()
+        {
+            Log(ErrorLevel.Info, nameof(OnPlayOneshotForPut));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
+            // サイコロを配置の効果音を再生
+            DicePutAudioSource.PlayOneShot(DicePutAudioClip);
+        }
+
         #endregion
     }
 }
