@@ -542,6 +542,11 @@ namespace Wipeseals
         #region Private Variables
 
         /// <summary>
+        /// UI初期化を行ったかどうか。これは同期せず1度はLocal実行する
+        /// </summary>
+        bool _isSetupUI = false;
+
+        /// <summary>
         /// サイコロ転がし始めてからのTimeout検知用
         /// </summary>
         float _diceRollStartTime = 0.0f;
@@ -577,6 +582,11 @@ namespace Wipeseals
                 }
             }
         }
+
+        /// <summary>
+        /// 設定に問題がある場合はtrue
+        /// </summary>
+        public bool IsConfigurationError => Progress == (int)GameProgress.ConfigurationError;
 
         /// <summary>
         /// ゲームが開始していないならtrue
@@ -1109,6 +1119,21 @@ namespace Wipeseals
         #region Event Process
 
         /// <summary>
+        /// UIの設定ができているか確認してからUIの初期化
+        /// </summary>
+        public bool SetupUI()
+        {
+            // 設定完了確認とUIのリセット
+            if (!IsValidInspectorSettings(out var msg))
+            {
+                Log(ErrorLevel.Error, msg);
+                return false;
+            }
+            ResetAllUIState();
+            return true;
+        }
+
+        /// <summary>
         /// ゲームの完全初期化。Playerなども含めてクリア
         /// Ownerではない場合は取得
         /// </summary>
@@ -1523,44 +1548,55 @@ namespace Wipeseals
         void Start()
         {
             Log(ErrorLevel.Info, $"{nameof(Start)}");
+
+            // OnPlayerJoined で初期化実行するのでここでは何もしない
         }
 
         public override void OnPlayerJoined(VRCPlayerApi player)
         {
             Log(ErrorLevel.Info, $"{nameof(OnPlayerJoined)}: {IsOwner}");
 
-            // 初期化必要な場合. Startで実行されないケース及びNetwork関連が初期化中の対策
-            if (Progress == (int)GameProgress.Initial)
+            // UI初期化自体は同期変数のProgressにかかわらず1回実行。ゲーム初期化前に複数人入ったときの対策
+            if (!_isSetupUI)
             {
-                // 設定完了確認とUIのリセット
-                if (!IsValidInspectorSettings(out var msg))
-                {
-                    Log(ErrorLevel.Error, msg);
+                _isSetupUI = true;
+                bool hasSetupSucceeded = SetupUI();
 
-                    this.Progress = (int)GameProgress.ConfigurationError;
+                // Ownerかつ同期変数未初期化の場合はProgressに反映して以後のJoinerにも通知
+                if (IsOwner && (Progress == (int)GameProgress.Initial))
+                {
+                    if (hasSetupSucceeded)
+                    {
+                        // 同期変数の初期化とPlayer追加待ちへ
+                        InitAllGameStatus();
+                    }
+                    else
+                    {
+                        // Inspector設定が不完全な場合はエラー状態にしておく
+                        this.Progress = (int)GameProgress.ConfigurationError;
+                    }
                     SyncManually();
-
-                    return;
-                }
-                ResetAllUIState();
-
-                // 初期化直後かつOwnerの1回に限り、初期化処理を行う
-                if (IsOwner)
-                {
-                    InitAllGameStatus();
                 }
             }
 
-            // OnPlayerJoined時点で変数は同期済のようだが、RequestSerialization未実施分の差分があるかもしれないので送っておく
-            if (IsOwner)
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
             {
-                SyncManually();
+                return;
             }
+
+            // なにかやることがあれば追加
         }
 
         public override void OnPlayerLeft(VRCPlayerApi player)
         {
             Log(ErrorLevel.Info, $"{nameof(OnPlayerLeft)}: {player.displayName} {IsOwner}");
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
 
             // Ownerの場合、Playerどちらかに含まれるか検査し、抜けた場合はAbort
             if (IsOwner)
@@ -1595,7 +1631,7 @@ namespace Wipeseals
             Log(ErrorLevel.Info, $"{nameof(OnUIUpdate)}");
 
             // Configuration Errorの場合、使えないUIがある場合があるので何もしない
-            if (Progress == (int)GameProgress.ConfigurationError)
+            if (IsConfigurationError)
             {
                 return;
             }
@@ -1773,6 +1809,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnPlayer1Entry));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // 参加
             JoinPlayer(PLAYER1, PlayerType.Human, Networking.LocalPlayer.displayName, Networking.LocalPlayer.playerId);
 
@@ -1789,6 +1831,12 @@ namespace Wipeseals
         public void OnPlayer1CPUEntry()
         {
             Log(ErrorLevel.Info, nameof(OnPlayer1CPUEntry));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
 
             // CPU参加
             JoinCpuPlayer(PLAYER1);
@@ -1807,6 +1855,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnPlayer2Entry));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // 参加
             JoinPlayer(PLAYER2, PlayerType.Human, Networking.LocalPlayer.displayName, Networking.LocalPlayer.playerId);
 
@@ -1823,6 +1877,12 @@ namespace Wipeseals
         public void OnPlayer2CPUEntry()
         {
             Log(ErrorLevel.Info, nameof(OnPlayer2CPUEntry));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
 
             // CPU参加
             JoinCpuPlayer(PLAYER2);
@@ -1841,6 +1901,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnRematch));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // Playerは保持したままゲームをリセットして再開
             StartGame();
         }
@@ -1851,6 +1917,12 @@ namespace Wipeseals
         public void OnReset()
         {
             Log(ErrorLevel.Info, nameof(OnReset));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
 
             // Playerもリセット。参加するところからやり直し
             InitAllGameStatus();
@@ -1863,6 +1935,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnRollDice));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // サイコロを転がしを開始
             StartRoll();
         }
@@ -1874,6 +1952,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnPollingRoll));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // サイコロの値を決定するために観測
             PollingRoll();
         }
@@ -1884,6 +1968,12 @@ namespace Wipeseals
         public void OnPutP1C1()
         {
             Log(ErrorLevel.Info, nameof(OnPutP1C1));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
 
             // 現在のPlayerと一致しているかは見ておく
             if (CurrentPlayer != PLAYER1)
@@ -1903,6 +1993,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnPutP1C2));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // 現在のPlayerと一致しているかは見ておく
             if (CurrentPlayer != PLAYER1)
             {
@@ -1921,6 +2017,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnPutP1C3));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // 現在のPlayerと一致しているかは見ておく
             if (CurrentPlayer != PLAYER1)
             {
@@ -1938,6 +2040,12 @@ namespace Wipeseals
         public void OnPutP2C1()
         {
             Log(ErrorLevel.Info, nameof(OnPutP2C1));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
 
             // 現在のPlayerと一致しているかは見ておく
             if (CurrentPlayer != PLAYER2)
@@ -1958,6 +2066,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnPutP2C2));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // 現在のPlayerと一致しているかは見ておく
             if (CurrentPlayer != PLAYER2)
             {
@@ -1976,6 +2090,12 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, nameof(OnPutP2C3));
 
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
             // 現在のPlayerと一致しているかは見ておく
             if (CurrentPlayer != PLAYER2)
             {
@@ -1990,6 +2110,12 @@ namespace Wipeseals
         public void OnJudgeFinishGame()
         {
             Log(ErrorLevel.Info, nameof(OnJudgeFinishGame));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
 
             // ゲームの勝敗を判定
             JudgeFinishGame();
