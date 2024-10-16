@@ -1,4 +1,6 @@
-﻿
+﻿// UdonChips対応を有効にする場合は定義する
+// #define UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+
 using UdonSharp;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,6 +8,10 @@ using VRC.SDKBase;
 using VRC.Udon;
 using TMPro;
 using System;
+
+#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+using UCS;
+#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
 
 namespace Wipeseals
 {
@@ -155,6 +161,11 @@ namespace Wipeseals
         [SerializeField, Tooltip("デバッグモード")]
         public bool IsDebug = true;
 
+        [SerializeField, Tooltip("勝敗決定時、得点差からUdonChipsに換金するRate (PvP)")]
+        public float UdonChipsPlayerRate = 50.0f;
+
+        [SerializeField, Tooltip("勝敗決定時、得点差からUdonChipsに換金するRate (vs CPU)")]
+        public float UdonChipsCpuRate = 5.0f;
 
         [SerializeField, Tooltip("CPUがイベントを進める速度")]
         public float ThinkTimeForCpu = 1.5f;
@@ -551,6 +562,41 @@ namespace Wipeseals
             }
         }
 
+        /// <summary>
+        /// Player1のUdonChips総額
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1UdonChips))]
+        public float _player1UdonChips = 0.0f;
+
+        /// <summary>
+        /// Player1のUdonChips総額
+        /// </summary>
+        public float Player1UdonChips
+        {
+            get => _player1UdonChips;
+            set
+            {
+                _player1UdonChips = value;
+            }
+        }
+
+        /// <summary>
+        /// Player2のUdonChips総額
+        /// </summary>
+        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player2UdonChips))]
+        public float _player2UdonChips = 0.0f;
+
+        /// <summary>
+        /// Player2のUdonChips総額
+        /// </summary>
+        public float Player2UdonChips
+        {
+            get => _player2UdonChips;
+            set
+            {
+                _player2UdonChips = value;
+            }
+        }
 
         #endregion
         #region Private Variables
@@ -766,8 +812,6 @@ namespace Wipeseals
         {
             Log(ErrorLevel.Info, $"{nameof(SyncManually)}");
 
-            // 自分用
-            OnUIUpdate();
             // 全員に送信
             RequestSerialization();
             SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnUIUpdate));
@@ -803,6 +847,8 @@ namespace Wipeseals
             Player2DiceArrayBits = 0;
             DiceRollPosition = Vector3.zero;
             DiceRollRotation = Quaternion.identity;
+            Player1UdonChips = 0.0f;
+            Player2UdonChips = 0.0f;
         }
         #endregion
         #region DiceArrayBits Accessor
@@ -817,7 +863,7 @@ namespace Wipeseals
         /// </summary>
         void SetDiceArrayBits(int player, ulong bits)
         {
-            Log(ErrorLevel.Info, $"{nameof(SetDiceArrayBits)}: player={player}, bits={bits:016X}");
+            Log(ErrorLevel.Info, $"{nameof(SetDiceArrayBits)}: player={player}");
 
             if (player == PLAYER1)
             {
@@ -833,6 +879,79 @@ namespace Wipeseals
             }
         }
 
+        #endregion
+        #region UdonChips Utility
+#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+        /// <summary>
+        /// 所持金を取得し同期変数に設定
+        /// </summary>
+        void UpdateCurrentUdonChips()
+        {
+            Log(ErrorLevel.Info, $"{nameof(UpdateCurrentUdonChips)}");
+
+            var money = GameObject.Find("UdonChips").GetComponent<UdonChips>().money;
+            if (IsMyselfPlayer1)
+            {
+                Player1UdonChips = money;
+            }
+            else if (IsMyselfPlayer2)
+            {
+                Player2UdonChips = money;
+            }
+        }
+
+        /// <summary>
+        /// 勝敗の金額を反映。ローカル処理
+        /// </summary>
+        void ApplyUdonChips()
+        {
+            // UdonChips自体はLocalなのでOwnerでなくても問題ない
+
+            // 取引金額を計算
+            var player1Score = GetDiceArrayBits(PLAYER1).GetTotalScore();
+            var player2Score = GetDiceArrayBits(PLAYER2).GetTotalScore();
+            var scoreDiff = (player1Score > player2Score) ? player1Score - player2Score : player2Score - player1Score;
+
+            var ratio = ((Player1Type == (int)PlayerType.CPU || Player2Type == (int)PlayerType.CPU) ? UdonChipsCpuRate : UdonChipsPlayerRate);
+            var applyMoney = scoreDiff * ratio;
+
+            // 負けたPlayerが支払えないケースでは残金全てに設定。CPUの場合は全額のまま
+            if (CurrentGameJudge == (int)GameJudge.Player1Win && Player1Type == (int)PlayerType.Human && Player2UdonChips < applyMoney)
+            {
+                applyMoney = Player2UdonChips;
+            }
+            else if (CurrentGameJudge == (int)GameJudge.Player2Win && Player2Type == (int)PlayerType.Human && Player1UdonChips < applyMoney)
+            {
+                applyMoney = Player1UdonChips;
+            }
+
+            // 取引。それぞれのローカルでmoneyを更新
+            if (IsMyselfPlayer1)
+            {
+                if (CurrentGameJudge == (int)GameJudge.Player1Win)
+                {
+                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money += applyMoney;
+                }
+                else if (CurrentGameJudge == (int)GameJudge.Player2Win)
+                {
+                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
+                }
+            }
+            else if (IsMyselfPlayer2)
+            {
+                if (CurrentGameJudge == (int)GameJudge.Player2Win)
+                {
+                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money += applyMoney;
+                }
+                else if (CurrentGameJudge == (int)GameJudge.Player1Win)
+                {
+                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
+                }
+            }
+
+            Log(ErrorLevel.Info, $"Player1Score={player1Score} Player2Score={player2Score} ScoreDiff={scoreDiff} ApplyMoney={applyMoney}");
+        }
+#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
         #endregion
         #region UI Utility
 
@@ -1135,14 +1254,14 @@ namespace Wipeseals
                 case ErrorLevel.Info:
                     if (IsDebug)
                     {
-                        Debug.Log($"[UdonKnucklebones] {msg}");
+                        UnityEngine.Debug.Log($"[UdonKnucklebones] {msg}");
                     }
                     break;
                 case ErrorLevel.Warning:
-                    Debug.LogWarning($"[UdonKnucklebones] {msg}");
+                    UnityEngine.Debug.LogWarning($"[UdonKnucklebones] {msg}");
                     break;
                 case ErrorLevel.Error:
-                    Debug.LogError($"[UdonKnucklebones] {msg}");
+                    UnityEngine.Debug.LogError($"[UdonKnucklebones] {msg}");
                     break;
             }
         }
@@ -1525,6 +1644,13 @@ namespace Wipeseals
                 ChangeOwner();
             }
 
+
+#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+            // 毎ターンごとに各PlayerがOwnerを持ち、変数更新を行えるのでUdonChips最新値を取得しておく
+            // 差額計算に近いタイミングではあるが、反映までの僅かな間に変更されるケースは諦める (一応Underflowしない対策入れた)
+            UpdateCurrentUdonChips();
+#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+
             // 左詰めの処理していないのでここでやる（PutDice時の消えるアニメーション流したいため)
             SetDiceArrayBits(PLAYER1, GetDiceArrayBits(PLAYER1).LeftJustify());
             SetDiceArrayBits(PLAYER2, GetDiceArrayBits(PLAYER2).LeftJustify());
@@ -1575,11 +1701,12 @@ namespace Wipeseals
                 CurrentGameJudge = (int)GameJudge.Draw;
             }
 
-            // TODO: UdonChips対応?
-
             // ゲーム終了
             Progress = (int)GameProgress.GameEnd;
             SyncManually();
+
+            // UdonChips更新のためのイベント発火
+            SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnGameEnding));
         }
 
 
@@ -2197,6 +2324,25 @@ namespace Wipeseals
             DicePutAudioSource.PlayOneShot(DicePutAudioClip);
         }
 
+        /// <summary>
+        /// ゲーム終了時に呼び出されるイベント。ローカルで表示・反映するものがあれば実行
+        /// </summary>
+        public void OnGameEnding()
+        {
+            Log(ErrorLevel.Info, nameof(OnGameEnding));
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
+#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+            // ゲーム終了に合わせて残金精算。条件付きコンパイルのため非サポートの場合は何もしない
+            ApplyUdonChips();
+#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+
+        }
         #endregion
     }
 }
