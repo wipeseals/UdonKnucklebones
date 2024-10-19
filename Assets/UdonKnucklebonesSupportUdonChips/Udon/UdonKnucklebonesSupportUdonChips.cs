@@ -19,7 +19,14 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
     {
         Log(ErrorLevel.Info, $"{nameof(OnUpdateCurrentUdonChips)}");
 
-        var money = GameObject.Find("UdonChips").GetComponent<UdonChips>().money;
+        var uc = GameObject.Find("UdonChips").GetComponent<UdonChips>();
+        if (uc == null)
+        {
+            Log(ErrorLevel.Error, $"UdonChips is not found");
+            return;
+        }
+
+        var money = uc.money;
         if (IsMyselfPlayer1)
         {
             Player1UdonChips = money;
@@ -38,6 +45,13 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
     public override void OnApplyUdonChips()
     {
         Log(ErrorLevel.Info, $"{nameof(OnApplyUdonChips)}");
+
+        var uc = GameObject.Find("UdonChips").GetComponent<UdonChips>();
+        if (uc == null)
+        {
+            Log(ErrorLevel.Error, $"UdonChips is not found");
+            return;
+        }
 
         // UdonChips自体はLocalなのでOwnerでなくても問題ない
 
@@ -82,22 +96,22 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
         {
             if (CurrentGameJudge == (int)GameJudge.Player1Win)
             {
-                GameObject.Find("UdonChips").GetComponent<UdonChips>().money += applyMoney;
+                uc.money += applyMoney;
             }
             else if (CurrentGameJudge == (int)GameJudge.Player2Win)
             {
-                GameObject.Find("UdonChips").GetComponent<UdonChips>().money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
+                uc.money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
             }
         }
         else if (IsMyselfPlayer2)
         {
             if (CurrentGameJudge == (int)GameJudge.Player2Win)
             {
-                GameObject.Find("UdonChips").GetComponent<UdonChips>().money += applyMoney;
+                uc.money += applyMoney;
             }
             else if (CurrentGameJudge == (int)GameJudge.Player1Win)
             {
-                GameObject.Find("UdonChips").GetComponent<UdonChips>().money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
+                uc.money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
             }
         }
 
