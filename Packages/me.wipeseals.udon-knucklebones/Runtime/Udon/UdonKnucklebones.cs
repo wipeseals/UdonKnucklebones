@@ -842,7 +842,14 @@ namespace Wipeseals
             // 全員に送信
             RequestSerialization();
             SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnUIUpdate));
+        }
 
+        public void RequestSyncManuallyToOwner()
+        {
+            Log(ErrorLevel.Info, $"{nameof(RequestSyncManuallyToOwner)}");
+
+            // Ownerに更新イベントを明示的に投げさせる
+            SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner, nameof(OnRequestSyncManually));
         }
 
         /// <summary>
@@ -1697,20 +1704,25 @@ namespace Wipeseals
                 _isSetupUI = true;
                 bool hasSetupSucceeded = SetupUI();
 
-                // Ownerかつ同期変数未初期化の場合はProgressに反映して以後のJoinerにも通知
                 if (IsOwner && (Progress == (int)GameProgress.Initial))
                 {
+                    // Ownerかつ同期変数未初期化の場合はProgressに反映して以後のJoinerにも通知
                     if (hasSetupSucceeded)
                     {
-                        // 同期変数の初期化とPlayer追加待ちへ
+                        // 同期変数の初期化とPlayer追加待ちへ。内部でSyncも実行済
                         InitAllGameStatus();
                     }
                     else
                     {
                         // Inspector設定が不完全な場合はエラー状態にしておく
                         this.Progress = (int)GameProgress.ConfigurationError;
+                        SyncManually();
                     }
-                    SyncManually();
+                }
+                else
+                {
+                    // Owner以外の場合はOwnerが反映した値を元にUIを更新
+                    OnUIUpdate();
                 }
             }
 
@@ -1720,7 +1732,31 @@ namespace Wipeseals
                 return;
             }
 
-            // なにかやることがあれば追加
+            // 初回以後、あとから来たPlayerに明示的に同期を取らせるためのNetwork Eventを送る
+            if (!IsOwner && !IsUnityDebug && player.playerId == Networking.LocalPlayer.playerId)
+            {
+                RequestSyncManuallyToOwner();
+            }
+        }
+
+        /// <summary>
+        /// Late JoinerからOwner向けに明示的に同期を発生させるイベント
+        /// </summary>
+        public void OnRequestSyncManually()
+        {
+            Log(ErrorLevel.Info, $"{nameof(OnRequestSyncManually)}");
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
+            // Owner以外の場合はOwnerに同期を要求
+            if (IsOwner)
+            {
+                SyncManually();
+            }
         }
 
         public override void OnPlayerLeft(VRCPlayerApi player)
