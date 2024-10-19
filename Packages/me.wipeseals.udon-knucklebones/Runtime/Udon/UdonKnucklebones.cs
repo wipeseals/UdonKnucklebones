@@ -814,7 +814,7 @@ namespace Wipeseals
         /// <summary>
         /// 動機変数を全て初期化する
         /// </summary>
-        void ResetSyncedProperties()
+        public void ResetSyncedProperties()
         {
             Log(ErrorLevel.Info, $"{nameof(ResetSyncedProperties)}: IsOwner={IsOwner}");
 
@@ -849,12 +849,12 @@ namespace Wipeseals
         /// <summary>
         /// プレイヤーのサイコロ配置を取得
         /// </summary>
-        ulong GetDiceArrayBits(int player) => player == 0 ? Player1DiceArrayBits : Player2DiceArrayBits;
+        public ulong GetDiceArrayBits(int player) => player == 0 ? Player1DiceArrayBits : Player2DiceArrayBits;
 
         /// <summary>
         /// プレイヤーのサイコロ配置を更新
         /// </summary>
-        void SetDiceArrayBits(int player, ulong bits)
+        public void SetDiceArrayBits(int player, ulong bits)
         {
             Log(ErrorLevel.Info, $"{nameof(SetDiceArrayBits)}: player={player}");
 
@@ -897,7 +897,7 @@ namespace Wipeseals
         /// </summary>
         /// <param name="msg"></param>
         /// <returns></returns>
-        bool IsValidInspectorSettings(out string msg)
+        public bool IsValidInspectorSettings(out string msg)
         {
             Log(ErrorLevel.Info, $"{nameof(IsValidInspectorSettings)}");
 
@@ -1099,7 +1099,7 @@ namespace Wipeseals
         /// <summary>
         /// すべての状態をリセットする
         /// </summary>
-        void ResetAllUIState()
+        public void ResetAllUIState()
         {
             Log(ErrorLevel.Info, $"{nameof(ResetAllUIState)}");
 
@@ -1184,7 +1184,7 @@ namespace Wipeseals
         /// Prints a message to the console
         /// </summary>
         /// <param name="msg"></param>
-        internal void Log(ErrorLevel level, string msg)
+        public void Log(ErrorLevel level, string msg)
         {
             switch (level)
             {
@@ -1247,7 +1247,7 @@ namespace Wipeseals
         /// <summary>
         /// Player参加
         /// </summary>
-        void JoinPlayer(int player, PlayerType type, string displayName, int playerId)
+        public void JoinPlayer(int player, PlayerType type, string displayName, int playerId)
         {
             Log(ErrorLevel.Info, $"{nameof(JoinPlayer)}: player={player}, type={type}, displayName={displayName}, playerId={playerId}");
 
@@ -1281,7 +1281,7 @@ namespace Wipeseals
         /// CPU Player参加
         /// </summary>
         /// <param name="player"></param>
-        void JoinCpuPlayer(int player)
+        public void JoinCpuPlayer(int player)
         {
             Log(ErrorLevel.Info, $"{nameof(JoinCpuPlayer)}: player={player}");
 
@@ -1314,7 +1314,7 @@ namespace Wipeseals
         /// <summary>
         /// Player離脱
         /// </summary>
-        void LeavePlayer(int player)
+        public void LeavePlayer(int player)
         {
             Log(ErrorLevel.Info, $"{nameof(LeavePlayer)}: player={player}");
 
@@ -1347,7 +1347,7 @@ namespace Wipeseals
         /// <summary>
         /// ゲーム開始
         /// </summary>
-        void StartGame()
+        public void StartGame()
         {
             Log(ErrorLevel.Info, $"{nameof(StartGame)}");
 
@@ -1378,7 +1378,7 @@ namespace Wipeseals
         /// <summary>
         /// サイコロを降る
         /// </summary>
-        void StartRoll()
+        public void StartRoll()
         {
             // Ownerのみが変更できる。Ownerでなければ取得
             if (!IsOwner)
@@ -1428,7 +1428,7 @@ namespace Wipeseals
         /// <summary>
         /// サイコロを転がしている間のポーリング処理
         /// </summary>
-        void PollingRoll()
+        public void PollingRoll()
         {
             Log(ErrorLevel.Info, $"{nameof(PollingRoll)} Progress={Progress} CurrentPlayer={CurrentPlayer}");
 
@@ -1521,7 +1521,7 @@ namespace Wipeseals
         /// <summary>
         /// サイコロを配置する
         /// </summary>
-        void PutDice(int col)
+        public void PutDice(int col)
         {
             var player = CurrentPlayer;
             var value = RolledDiceValue;
@@ -1573,7 +1573,7 @@ namespace Wipeseals
         /// <summary>
         /// ゲームの勝敗を取得
         /// </summary>
-        void JudgeFinishGame()
+        public void JudgeFinishGame()
         {
             // Ownerのみが変更できる。Ownerでなければ取得
             if (!IsOwner)

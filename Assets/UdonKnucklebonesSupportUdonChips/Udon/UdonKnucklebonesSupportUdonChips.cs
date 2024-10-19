@@ -7,10 +7,7 @@ using VRC.SDKBase;
 using VRC.Udon;
 
 using Wipeseals;
-
-#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
 using UCS;
-#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
 
 public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
 {
@@ -22,19 +19,17 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
     {
         Log(ErrorLevel.Info, $"{nameof(OnUpdateCurrentUdonChips)}");
 
-#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
-            var money = GameObject.Find("UdonChips").GetComponent<UdonChips>().money;
-            if (IsMyselfPlayer1)
-            {
-                Player1UdonChips = money;
-            }
-            else if (IsMyselfPlayer2)
-            {
-                Player2UdonChips = money;
-            }
+        var money = GameObject.Find("UdonChips").GetComponent<UdonChips>().money;
+        if (IsMyselfPlayer1)
+        {
+            Player1UdonChips = money;
+        }
+        else if (IsMyselfPlayer2)
+        {
+            Player2UdonChips = money;
+        }
 
-            Log(ErrorLevel.Info, $"Player1UdonChips={Player1UdonChips} Player2UdonChips={Player2UdonChips}");
-#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+        Log(ErrorLevel.Info, $"Player1UdonChips={Player1UdonChips} Player2UdonChips={Player2UdonChips}");
     }
 
     /// <summary>
@@ -44,7 +39,6 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
     {
         Log(ErrorLevel.Info, $"{nameof(OnApplyUdonChips)}");
 
-#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
         // UdonChips自体はLocalなのでOwnerでなくても問題ない
 
         // 取引金額を計算
@@ -90,7 +84,6 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
         }
 
         Log(ErrorLevel.Info, $"Player1Score={player1Score} Player2Score={player2Score} ScoreDiff={scoreDiff} ApplyMoney={applyMoney}");
-#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
     }
     #endregion
 
