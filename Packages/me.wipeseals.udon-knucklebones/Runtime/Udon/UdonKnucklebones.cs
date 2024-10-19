@@ -1,17 +1,10 @@
-﻿// UdonChips対応を有効にする場合は定義する
-// #define UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
-
-using UdonSharp;
+﻿using UdonSharp;
 using UnityEngine;
 using UnityEngine.UI;
 using VRC.SDKBase;
 using VRC.Udon;
 using TMPro;
 using System;
-
-#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
-using UCS;
-#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
 
 namespace Wipeseals
 {
@@ -325,24 +318,6 @@ namespace Wipeseals
             set
             {
                 _currentGameJudge = (int)value;
-            }
-        }
-
-        /// <summary>
-        /// システムメッセージ
-        /// </summary>
-        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(SystemMessage))]
-        public string _systemMessage = "";
-
-        /// <summary>
-        /// システムメッセージ
-        /// </summary>
-        public string SystemMessage
-        {
-            get => _systemMessage;
-            set
-            {
-                _systemMessage = value;
             }
         }
 
@@ -758,6 +733,58 @@ namespace Wipeseals
         }
 
         /// <summary>
+        /// システムメッセージを取得。UI反映用のメッセージ
+        /// </summary>
+        /// <returns></returns>
+        public virtual string GetSystemMessage()
+        {
+            switch ((GameProgress)Progress)
+            {
+                case GameProgress.Initial:
+                    return "Booting...";
+                case GameProgress.WaitEnterPlayers:
+                    return "Waiting for Enter Players";
+                case GameProgress.GameStart:
+                    return "Game Start!";
+                case GameProgress.WaitPlayer1Roll:
+                    return "Player1: Roll the dice!";
+                case GameProgress.Player1Rolling:
+                    return "Player1: Rolling the dice...";
+                case GameProgress.WaitPlayer1Put:
+                    return $"Player1: Put the dice '{RolledDiceValue}'!";
+                case GameProgress.WaitPlayer1Calc:
+                    return "Player1: Calculating...";
+                case GameProgress.WaitPlayer2Roll:
+                    return "Player2: Roll the dice!";
+                case GameProgress.Player2Rolling:
+                    return "Player2: Rolling the dice...";
+                case GameProgress.WaitPlayer2Put:
+                    return $"Player2: Put the dice '{RolledDiceValue}'!";
+                case GameProgress.WaitPlayer2Calc:
+                    return "Player2: Calculating...";
+                case GameProgress.GameEnd:
+                    switch ((GameJudge)CurrentGameJudge)
+                    {
+                        case GameJudge.Player1Win:
+                            return "Player1 Win!";
+                        case GameJudge.Player2Win:
+                            return "Player2 Win!";
+                        case GameJudge.Draw:
+                            return "Draw!";
+                        default:
+                            return "";
+                    }
+                case GameProgress.Aborted:
+                    return "Game Aborted!";
+                case GameProgress.ConfigurationError:
+                    return "Configuration Error!";
+                default:
+                    break;
+            }
+            return "";
+        }
+
+        /// <summary>
         /// Player1のサイコロ列の配列
         /// </summary>
         public Animator[][] Player1ColDiceArrayList => new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray };
@@ -815,13 +842,20 @@ namespace Wipeseals
             // 全員に送信
             RequestSerialization();
             SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(OnUIUpdate));
+        }
 
+        public void RequestSyncManuallyToOwner()
+        {
+            Log(ErrorLevel.Info, $"{nameof(RequestSyncManuallyToOwner)}");
+
+            // Ownerに更新イベントを明示的に投げさせる
+            SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.Owner, nameof(OnRequestSyncManually));
         }
 
         /// <summary>
         /// 動機変数を全て初期化する
         /// </summary>
-        void ResetSyncedProperties()
+        public void ResetSyncedProperties()
         {
             Log(ErrorLevel.Info, $"{nameof(ResetSyncedProperties)}: IsOwner={IsOwner}");
 
@@ -834,7 +868,6 @@ namespace Wipeseals
             // Accessor経由で変更してからRequestSerialization
             Progress = (int)GameProgress.WaitEnterPlayers;
             CurrentGameJudge = (int)GameJudge.Continue;
-            SystemMessage = "Waiting for Player1";
             Player1Type = (int)PlayerType.Invalid;
             Player2Type = (int)PlayerType.Invalid;
             RolledDiceValue = 0;
@@ -856,12 +889,12 @@ namespace Wipeseals
         /// <summary>
         /// プレイヤーのサイコロ配置を取得
         /// </summary>
-        ulong GetDiceArrayBits(int player) => player == 0 ? Player1DiceArrayBits : Player2DiceArrayBits;
+        public ulong GetDiceArrayBits(int player) => player == 0 ? Player1DiceArrayBits : Player2DiceArrayBits;
 
         /// <summary>
         /// プレイヤーのサイコロ配置を更新
         /// </summary>
-        void SetDiceArrayBits(int player, ulong bits)
+        public void SetDiceArrayBits(int player, ulong bits)
         {
             Log(ErrorLevel.Info, $"{nameof(SetDiceArrayBits)}: player={player}");
 
@@ -880,78 +913,22 @@ namespace Wipeseals
         }
 
         #endregion
-        #region UdonChips Utility
-#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+        #region UdonChips Event (Empty)
         /// <summary>
         /// 所持金を取得し同期変数に設定
+        /// 本家UdonKnucklebonesではUdonChipsへの参照を持っていないので何もしない
         /// </summary>
-        void UpdateCurrentUdonChips()
+        public virtual void OnUpdateCurrentUdonChips()
         {
-            Log(ErrorLevel.Info, $"{nameof(UpdateCurrentUdonChips)}");
-
-            var money = GameObject.Find("UdonChips").GetComponent<UdonChips>().money;
-            if (IsMyselfPlayer1)
-            {
-                Player1UdonChips = money;
-            }
-            else if (IsMyselfPlayer2)
-            {
-                Player2UdonChips = money;
-            }
         }
 
         /// <summary>
         /// 勝敗の金額を反映。ローカル処理
+        /// 本家UdonKnucklebonesではUdonChipsへの参照を持っていないので何もしない
         /// </summary>
-        void ApplyUdonChips()
+        public virtual void OnApplyUdonChips()
         {
-            // UdonChips自体はLocalなのでOwnerでなくても問題ない
-
-            // 取引金額を計算
-            var player1Score = GetDiceArrayBits(PLAYER1).GetTotalScore();
-            var player2Score = GetDiceArrayBits(PLAYER2).GetTotalScore();
-            var scoreDiff = (player1Score > player2Score) ? player1Score - player2Score : player2Score - player1Score;
-
-            var ratio = ((Player1Type == (int)PlayerType.CPU || Player2Type == (int)PlayerType.CPU) ? UdonChipsCpuRate : UdonChipsPlayerRate);
-            var applyMoney = scoreDiff * ratio;
-
-            // 負けたPlayerが支払えないケースでは残金全てに設定。CPUの場合は全額のまま
-            if (CurrentGameJudge == (int)GameJudge.Player1Win && Player1Type == (int)PlayerType.Human && Player2UdonChips < applyMoney)
-            {
-                applyMoney = Player2UdonChips;
-            }
-            else if (CurrentGameJudge == (int)GameJudge.Player2Win && Player2Type == (int)PlayerType.Human && Player1UdonChips < applyMoney)
-            {
-                applyMoney = Player1UdonChips;
-            }
-
-            // 取引。それぞれのローカルでmoneyを更新
-            if (IsMyselfPlayer1)
-            {
-                if (CurrentGameJudge == (int)GameJudge.Player1Win)
-                {
-                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money += applyMoney;
-                }
-                else if (CurrentGameJudge == (int)GameJudge.Player2Win)
-                {
-                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
-                }
-            }
-            else if (IsMyselfPlayer2)
-            {
-                if (CurrentGameJudge == (int)GameJudge.Player2Win)
-                {
-                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money += applyMoney;
-                }
-                else if (CurrentGameJudge == (int)GameJudge.Player1Win)
-                {
-                    GameObject.Find("UdonChips").GetComponent<UdonChips>().money -= applyMoney; // 事前に支払えないケースの対応は済んでいるので、ここではそのまま減算
-                }
-            }
-
-            Log(ErrorLevel.Info, $"Player1Score={player1Score} Player2Score={player2Score} ScoreDiff={scoreDiff} ApplyMoney={applyMoney}");
         }
-#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
         #endregion
         #region UI Utility
 
@@ -960,7 +937,7 @@ namespace Wipeseals
         /// </summary>
         /// <param name="msg"></param>
         /// <returns></returns>
-        bool IsValidInspectorSettings(out string msg)
+        public bool IsValidInspectorSettings(out string msg)
         {
             Log(ErrorLevel.Info, $"{nameof(IsValidInspectorSettings)}");
 
@@ -1162,7 +1139,7 @@ namespace Wipeseals
         /// <summary>
         /// すべての状態をリセットする
         /// </summary>
-        void ResetAllUIState()
+        public void ResetAllUIState()
         {
             Log(ErrorLevel.Info, $"{nameof(ResetAllUIState)}");
 
@@ -1247,7 +1224,7 @@ namespace Wipeseals
         /// Prints a message to the console
         /// </summary>
         /// <param name="msg"></param>
-        void Log(ErrorLevel level, string msg)
+        public void Log(ErrorLevel level, string msg)
         {
             switch (level)
             {
@@ -1310,7 +1287,7 @@ namespace Wipeseals
         /// <summary>
         /// Player参加
         /// </summary>
-        void JoinPlayer(int player, PlayerType type, string displayName, int playerId)
+        public void JoinPlayer(int player, PlayerType type, string displayName, int playerId)
         {
             Log(ErrorLevel.Info, $"{nameof(JoinPlayer)}: player={player}, type={type}, displayName={displayName}, playerId={playerId}");
 
@@ -1344,7 +1321,7 @@ namespace Wipeseals
         /// CPU Player参加
         /// </summary>
         /// <param name="player"></param>
-        void JoinCpuPlayer(int player)
+        public void JoinCpuPlayer(int player)
         {
             Log(ErrorLevel.Info, $"{nameof(JoinCpuPlayer)}: player={player}");
 
@@ -1377,7 +1354,7 @@ namespace Wipeseals
         /// <summary>
         /// Player離脱
         /// </summary>
-        void LeavePlayer(int player)
+        public void LeavePlayer(int player)
         {
             Log(ErrorLevel.Info, $"{nameof(LeavePlayer)}: player={player}");
 
@@ -1410,7 +1387,7 @@ namespace Wipeseals
         /// <summary>
         /// ゲーム開始
         /// </summary>
-        void StartGame()
+        public void StartGame()
         {
             Log(ErrorLevel.Info, $"{nameof(StartGame)}");
 
@@ -1441,7 +1418,7 @@ namespace Wipeseals
         /// <summary>
         /// サイコロを降る
         /// </summary>
-        void StartRoll()
+        public void StartRoll()
         {
             // Ownerのみが変更できる。Ownerでなければ取得
             if (!IsOwner)
@@ -1491,7 +1468,7 @@ namespace Wipeseals
         /// <summary>
         /// サイコロを転がしている間のポーリング処理
         /// </summary>
-        void PollingRoll()
+        public void PollingRoll()
         {
             Log(ErrorLevel.Info, $"{nameof(PollingRoll)} Progress={Progress} CurrentPlayer={CurrentPlayer}");
 
@@ -1584,7 +1561,7 @@ namespace Wipeseals
         /// <summary>
         /// サイコロを配置する
         /// </summary>
-        void PutDice(int col)
+        public void PutDice(int col)
         {
             var player = CurrentPlayer;
             var value = RolledDiceValue;
@@ -1636,7 +1613,7 @@ namespace Wipeseals
         /// <summary>
         /// ゲームの勝敗を取得
         /// </summary>
-        void JudgeFinishGame()
+        public void JudgeFinishGame()
         {
             // Ownerのみが変更できる。Ownerでなければ取得
             if (!IsOwner)
@@ -1645,11 +1622,9 @@ namespace Wipeseals
             }
 
 
-#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
             // 毎ターンごとに各PlayerがOwnerを持ち、変数更新を行えるのでUdonChips最新値を取得しておく
             // 差額計算に近いタイミングではあるが、反映までの僅かな間に変更されるケースは諦める (一応Underflowしない対策入れた)
-            UpdateCurrentUdonChips();
-#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
+            OnUpdateCurrentUdonChips();
 
             // 左詰めの処理していないのでここでやる（PutDice時の消えるアニメーション流したいため)
             SetDiceArrayBits(PLAYER1, GetDiceArrayBits(PLAYER1).LeftJustify());
@@ -1729,20 +1704,25 @@ namespace Wipeseals
                 _isSetupUI = true;
                 bool hasSetupSucceeded = SetupUI();
 
-                // Ownerかつ同期変数未初期化の場合はProgressに反映して以後のJoinerにも通知
                 if (IsOwner && (Progress == (int)GameProgress.Initial))
                 {
+                    // Ownerかつ同期変数未初期化の場合はProgressに反映して以後のJoinerにも通知
                     if (hasSetupSucceeded)
                     {
-                        // 同期変数の初期化とPlayer追加待ちへ
+                        // 同期変数の初期化とPlayer追加待ちへ。内部でSyncも実行済
                         InitAllGameStatus();
                     }
                     else
                     {
                         // Inspector設定が不完全な場合はエラー状態にしておく
                         this.Progress = (int)GameProgress.ConfigurationError;
+                        SyncManually();
                     }
-                    SyncManually();
+                }
+                else
+                {
+                    // Owner以外の場合はOwnerが反映した値を元にUIを更新
+                    OnUIUpdate();
                 }
             }
 
@@ -1752,7 +1732,31 @@ namespace Wipeseals
                 return;
             }
 
-            // なにかやることがあれば追加
+            // 初回以後、あとから来たPlayerに明示的に同期を取らせるためのNetwork Eventを送る
+            if (!IsOwner && !IsUnityDebug && player.playerId == Networking.LocalPlayer.playerId)
+            {
+                RequestSyncManuallyToOwner();
+            }
+        }
+
+        /// <summary>
+        /// Late JoinerからOwner向けに明示的に同期を発生させるイベント
+        /// </summary>
+        public void OnRequestSyncManually()
+        {
+            Log(ErrorLevel.Info, $"{nameof(OnRequestSyncManually)}");
+
+            // Configuraiton Errorの場合は何もしない
+            if (IsConfigurationError)
+            {
+                return;
+            }
+
+            // RequestSerialization + OnUIUpdate創出して同期イベントを発生
+            if (IsOwner)
+            {
+                SyncManually();
+            }
         }
 
         public override void OnPlayerLeft(VRCPlayerApi player)
@@ -1885,70 +1889,7 @@ namespace Wipeseals
             TurnText.text = $"Turn: {CurrentTurn:D3}";
 
             // システムメッセージを更新
-            switch ((GameProgress)Progress)
-            {
-                case GameProgress.Initial:
-                    SystemText.text = "Booting...";
-                    break;
-                case GameProgress.WaitEnterPlayers:
-                    SystemText.text = "Waiting for Enter Players";
-                    break;
-                case GameProgress.GameStart:
-                    SystemText.text = "Game Start!";
-                    break;
-
-                case GameProgress.WaitPlayer1Roll:
-                    SystemText.text = "Player1: Roll the dice!";
-                    break;
-                case GameProgress.Player1Rolling:
-                    SystemText.text = "Player1: Rolling the dice...";
-                    break;
-                case GameProgress.WaitPlayer1Put:
-                    SystemText.text = $"Player1: Put the dice '{RolledDiceValue}'!";
-                    break;
-                case GameProgress.WaitPlayer1Calc:
-                    SystemText.text = "Player1: Calculating...";
-                    break;
-
-                case GameProgress.WaitPlayer2Roll:
-                    SystemText.text = "Player2: Roll the dice!";
-                    break;
-                case GameProgress.Player2Rolling:
-                    SystemText.text = "Player2: Rolling the dice...";
-                    break;
-                case GameProgress.WaitPlayer2Put:
-                    SystemText.text = $"Player2: Put the dice '{RolledDiceValue}'!";
-                    break;
-                case GameProgress.WaitPlayer2Calc:
-                    SystemText.text = "Player2: Calculating...";
-                    break;
-
-                case GameProgress.GameEnd:
-                    switch ((GameJudge)CurrentGameJudge)
-                    {
-                        case GameJudge.Player1Win:
-                            SystemText.text = "Player1 Win!";
-                            break;
-                        case GameJudge.Player2Win:
-                            SystemText.text = "Player2 Win!";
-                            break;
-                        case GameJudge.Draw:
-                            SystemText.text = "Draw!";
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-                case GameProgress.Aborted:
-                    SystemText.text = "Game Aborted!";
-                    break;
-                case GameProgress.ConfigurationError:
-                    SystemText.text = "Configuration Error!";
-                    break;
-
-                default:
-                    break;
-            }
+            SystemText.text = GetSystemMessage();
 
             // Join済ならLeaveだけ。Join前ならEntryだけ
             Player1EntryButton.interactable = (Player1PlayerId == 0);
@@ -2337,11 +2278,8 @@ namespace Wipeseals
                 return;
             }
 
-#if UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
-            // ゲーム終了に合わせて残金精算。条件付きコンパイルのため非サポートの場合は何もしない
-            ApplyUdonChips();
-#endif // UDON_KNUCKLEBONES_SUPPORT_UDONCHIPS
-
+            // ゲーム終了に合わせて残金精算
+            OnApplyUdonChips();
         }
         #endregion
     }
