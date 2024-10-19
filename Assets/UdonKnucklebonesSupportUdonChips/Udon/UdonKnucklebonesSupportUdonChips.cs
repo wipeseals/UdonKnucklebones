@@ -46,17 +46,29 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
         var player2Score = GetDiceArrayBits(PLAYER2).GetTotalScore();
         var scoreDiff = (player1Score > player2Score) ? player1Score - player2Score : player2Score - player1Score;
 
-        var ratio = ((Player1Type == (int)PlayerType.CPU || Player2Type == (int)PlayerType.CPU) ? UdonChipsCpuRate : UdonChipsPlayerRate);
+        var enterCpu = (Player1Type == (int)PlayerType.CPU || Player2Type == (int)PlayerType.CPU);
+        var ratio = (enterCpu ? UdonChipsCpuRate : UdonChipsPlayerRate);
         var applyMoney = scoreDiff * ratio;
 
         // 負けたPlayerが支払えないケースでは残金全てに設定。CPUの場合は全額のまま
-        if (CurrentGameJudge == (int)GameJudge.Player1Win && Player1Type == (int)PlayerType.Human && Player2UdonChips < applyMoney)
+        if (!enterCpu)
         {
-            applyMoney = Player2UdonChips;
-        }
-        else if (CurrentGameJudge == (int)GameJudge.Player2Win && Player2Type == (int)PlayerType.Human && Player1UdonChips < applyMoney)
-        {
-            applyMoney = Player1UdonChips;
+            if (CurrentGameJudge == (int)GameJudge.Player1Win)
+            {
+                // Player1が買ったがPlayer2が支払えない場合
+                if (Player2UdonChips < applyMoney)
+                {
+                    applyMoney = Player2UdonChips;
+                }
+            }
+            else if (CurrentGameJudge == (int)GameJudge.Player2Win)
+            {
+                // Player2が買ったがPlayer1が支払えない場合
+                if (Player1UdonChips < applyMoney)
+                {
+                    applyMoney = Player1UdonChips;
+                }
+            }
         }
 
         // 取引。それぞれのローカルでmoneyを更新
