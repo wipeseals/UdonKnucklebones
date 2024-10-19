@@ -60,7 +60,13 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
         }
 
         // 取引。それぞれのローカルでmoneyを更新
-        if (IsMyselfPlayer1)
+        if (IsMyselfPlayer1 && IsMyselfPlayer2)
+        {
+            // 自分自身との対戦の場合は何もしない
+            Log(ErrorLevel.Info, $"Player1 == Player2, Do nothing");
+
+        }
+        else if (IsMyselfPlayer1)
         {
             if (CurrentGameJudge == (int)GameJudge.Player1Win)
             {
