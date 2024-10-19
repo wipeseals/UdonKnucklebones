@@ -6071,6 +6071,8 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1939588559331057949}
   IsDebug: 1
+  UdonChipsPlayerRate: 50
+  UdonChipsCpuRate: 5
   ThinkTimeForCpu: 1.5
   PollingSecForRolling: 0.5
   IsColumnIndexCrossed: 1
@@ -6154,6 +6156,8 @@ MonoBehaviour:
   _player2DiceArrayBits: 0
   _diceRollPosition: {x: 0, y: 0, z: 0}
   _diceRollRotation: {x: 0, y: 0, z: 0, w: 1}
+  _player1UdonChips: 0
+  _player2UdonChips: 0
 --- !u!114 &1939588559331057949
 MonoBehaviour:
   m_ObjectHideFlags: 0
