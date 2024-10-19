@@ -733,6 +733,58 @@ namespace Wipeseals
         }
 
         /// <summary>
+        /// システムメッセージを取得。UI反映用のメッセージ
+        /// </summary>
+        /// <returns></returns>
+        public virtual string GetSystemMessage()
+        {
+            switch ((GameProgress)Progress)
+            {
+                case GameProgress.Initial:
+                    return "Booting...";
+                case GameProgress.WaitEnterPlayers:
+                    return "Waiting for Enter Players";
+                case GameProgress.GameStart:
+                    return "Game Start!";
+                case GameProgress.WaitPlayer1Roll:
+                    return "Player1: Roll the dice!";
+                case GameProgress.Player1Rolling:
+                    return "Player1: Rolling the dice...";
+                case GameProgress.WaitPlayer1Put:
+                    return $"Player1: Put the dice '{RolledDiceValue}'!";
+                case GameProgress.WaitPlayer1Calc:
+                    return "Player1: Calculating...";
+                case GameProgress.WaitPlayer2Roll:
+                    return "Player2: Roll the dice!";
+                case GameProgress.Player2Rolling:
+                    return "Player2: Rolling the dice...";
+                case GameProgress.WaitPlayer2Put:
+                    return $"Player2: Put the dice '{RolledDiceValue}'!";
+                case GameProgress.WaitPlayer2Calc:
+                    return "Player2: Calculating...";
+                case GameProgress.GameEnd:
+                    switch ((GameJudge)CurrentGameJudge)
+                    {
+                        case GameJudge.Player1Win:
+                            return "Player1 Win!";
+                        case GameJudge.Player2Win:
+                            return "Player2 Win!";
+                        case GameJudge.Draw:
+                            return "Draw!";
+                        default:
+                            return "";
+                    }
+                case GameProgress.Aborted:
+                    return "Game Aborted!";
+                case GameProgress.ConfigurationError:
+                    return "Configuration Error!";
+                default:
+                    break;
+            }
+            return "";
+        }
+
+        /// <summary>
         /// Player1のサイコロ列の配列
         /// </summary>
         public Animator[][] Player1ColDiceArrayList => new[] { Player1Col1DiceArray, Player1Col2DiceArray, Player1Col3DiceArray };
@@ -1801,70 +1853,7 @@ namespace Wipeseals
             TurnText.text = $"Turn: {CurrentTurn:D3}";
 
             // システムメッセージを更新
-            switch ((GameProgress)Progress)
-            {
-                case GameProgress.Initial:
-                    SystemText.text = "Booting...";
-                    break;
-                case GameProgress.WaitEnterPlayers:
-                    SystemText.text = "Waiting for Enter Players";
-                    break;
-                case GameProgress.GameStart:
-                    SystemText.text = "Game Start!";
-                    break;
-
-                case GameProgress.WaitPlayer1Roll:
-                    SystemText.text = "Player1: Roll the dice!";
-                    break;
-                case GameProgress.Player1Rolling:
-                    SystemText.text = "Player1: Rolling the dice...";
-                    break;
-                case GameProgress.WaitPlayer1Put:
-                    SystemText.text = $"Player1: Put the dice '{RolledDiceValue}'!";
-                    break;
-                case GameProgress.WaitPlayer1Calc:
-                    SystemText.text = "Player1: Calculating...";
-                    break;
-
-                case GameProgress.WaitPlayer2Roll:
-                    SystemText.text = "Player2: Roll the dice!";
-                    break;
-                case GameProgress.Player2Rolling:
-                    SystemText.text = "Player2: Rolling the dice...";
-                    break;
-                case GameProgress.WaitPlayer2Put:
-                    SystemText.text = $"Player2: Put the dice '{RolledDiceValue}'!";
-                    break;
-                case GameProgress.WaitPlayer2Calc:
-                    SystemText.text = "Player2: Calculating...";
-                    break;
-
-                case GameProgress.GameEnd:
-                    switch ((GameJudge)CurrentGameJudge)
-                    {
-                        case GameJudge.Player1Win:
-                            SystemText.text = "Player1 Win!";
-                            break;
-                        case GameJudge.Player2Win:
-                            SystemText.text = "Player2 Win!";
-                            break;
-                        case GameJudge.Draw:
-                            SystemText.text = "Draw!";
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-                case GameProgress.Aborted:
-                    SystemText.text = "Game Aborted!";
-                    break;
-                case GameProgress.ConfigurationError:
-                    SystemText.text = "Configuration Error!";
-                    break;
-
-                default:
-                    break;
-            }
+            SystemText.text = GetSystemMessage();
 
             // Join済ならLeaveだけ。Join前ならEntryだけ
             Player1EntryButton.interactable = (Player1PlayerId == 0);
