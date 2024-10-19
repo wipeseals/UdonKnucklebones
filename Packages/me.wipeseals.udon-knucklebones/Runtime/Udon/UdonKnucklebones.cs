@@ -1752,7 +1752,7 @@ namespace Wipeseals
                 return;
             }
 
-            // Owner以外の場合はOwnerに同期を要求
+            // RequestSerialization + OnUIUpdate創出して同期イベントを発生
             if (IsOwner)
             {
                 SyncManually();
