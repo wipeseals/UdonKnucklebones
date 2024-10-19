@@ -322,24 +322,6 @@ namespace Wipeseals
         }
 
         /// <summary>
-        /// システムメッセージ
-        /// </summary>
-        [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(SystemMessage))]
-        public string _systemMessage = "";
-
-        /// <summary>
-        /// システムメッセージ
-        /// </summary>
-        public string SystemMessage
-        {
-            get => _systemMessage;
-            set
-            {
-                _systemMessage = value;
-            }
-        }
-
-        /// <summary>
         /// Player1のタイプ
         /// </summary>
         [UdonSynced(UdonSyncMode.None), FieldChangeCallback(nameof(Player1Type))]
@@ -827,7 +809,6 @@ namespace Wipeseals
             // Accessor経由で変更してからRequestSerialization
             Progress = (int)GameProgress.WaitEnterPlayers;
             CurrentGameJudge = (int)GameJudge.Continue;
-            SystemMessage = "Waiting for Player1";
             Player1Type = (int)PlayerType.Invalid;
             Player2Type = (int)PlayerType.Invalid;
             RolledDiceValue = 0;
