@@ -106,12 +106,15 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
         // 各Playerの金額更新が起きている間は決着していない
         _isPaid = false;
 
-        var uc = GameObject.Find("UdonChips").GetComponent<UdonChips>();
-        if (uc == null)
+        // Scene中に配置されたUdonChipsを取得
+        var go = GameObject.Find("UdonChips");
+        if (go == null)
         {
             Log(ErrorLevel.Error, $"UdonChips is not found");
             return;
         }
+        var uc = go.GetComponent<UdonChips>();
+
 
         var money = uc.money;
         if (IsMyselfPlayer1)
@@ -133,12 +136,14 @@ public class UdonKnucklebonesSupportUdonChips : UdonKnucklebones
     {
         Log(ErrorLevel.Info, $"{nameof(OnApplyUdonChips)}");
 
-        var uc = GameObject.Find("UdonChips").GetComponent<UdonChips>();
-        if (uc == null)
+        // Scene中に配置されたUdonChipsを取得
+        var go = GameObject.Find("UdonChips");
+        if (go == null)
         {
             Log(ErrorLevel.Error, $"UdonChips is not found");
             return;
         }
+        var uc = go.GetComponent<UdonChips>();
 
         // UdonChips自体はLocalなのでOwnerでなくても問題ない
 
