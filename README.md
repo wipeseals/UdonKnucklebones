@@ -1,76 +1,152 @@
-# VPM Package Template
+# Udon Knucklebones
 
-Starter for making Packages, including automation for building and publishing them.
+[![Build Release](https://github.com/wipeseals/UdonKnucklebones/actions/workflows/release.yml/badge.svg)](https://github.com/wipeseals/UdonKnucklebones/actions/workflows/release.yml) [![Build Repo Listing](https://github.com/wipeseals/UdonKnucklebones/actions/workflows/build-listing.yml/badge.svg)](https://github.com/wipeseals/UdonKnucklebones/actions/workflows/build-listing.yml)
 
-Once you're all set up, you'll be able to push changes to this repository and have .zip and .unitypackage versions automatically generated, and a listing made which works in the VPM for delivering updates for this package. If you want to make a listing with a variety of packages, check out our [template-package-listing](https://github.com/vrchat-community/template-package-listing) repo.
+![banner](Docs~/banner.png)
 
-## ▶ Getting Started
+VRChat で遊べる運と駆け引きのゲーム。
 
-* Press [![Use This Template](https://user-images.githubusercontent.com/737888/185467681-e5fdb099-d99f-454b-8d9e-0760e5a6e588.png)](https://github.com/vrchat-community/template-package/generate)
-to start a new GitHub project based on this template.
-  * Choose a fitting repository name and description.
-  * Set the visibility to 'Public'. You can also choose 'Private' and change it later.
-  * You don't need to select 'Include all branches.'
-* Clone this repository locally using Git.
-  * If you're unfamiliar with Git and GitHub, [visit GitHub's documentation](https://docs.github.com/en/get-started/quickstart/git-and-github-learning-resources) to learn more.
-* Add the folder to Unity Hub and open it as a Unity Project.
-* After opening the project, wait while the VPM resolver is downloaded and added to your project.
-  * This gives you access to the VPM Package Maker and Package Resolver tools.
+- 簡単操作のテーブルゲーム
+- VCC (VRChat Creator Companion) 追加 & Prefab 追加で導入完了
+- Player/CPU 対戦可能
+- UdonChips あり版/なし版それぞれ対応
+- サンプルシーン、ゲーム説明用のボード・画像を同梱
 
-## 🚇 Migrating Assets Package
-Full details at [Converting Assets to a VPM Package](https://vcc.docs.vrchat.com/guides/convert-unitypackage)
+本家は [Cult of the Lamb](https://store.steampowered.com/app/1313140/Cult_of_the_Lamb/?l=japanese) 作中に登場するゲームで、本作品はファンメイドとなる。
 
-## ✏️ Working on Your Package
+## 外観
 
-* Delete the "Packages/com.vrchat.demo-template" directory or reuse it for your own package.
-  * If you reuse the package, don't forget to rename it!
-* Update the `.gitignore` file in the "Packages" directory to include your package.
-  * For example, change `!com.vrchat.demo-template` to `!com.username.package-name`.
-  * `.gitignore` files normally *exclude* the contents of your "Packages" directory. This `.gitignore` in this template show how to *include* the demo package. You can easily change this out for your own package name.
-* Open the Unity project and work on your package's files in your favorite code editor.
-* When you're ready, commit and push your changes.
-* Once you've set up the automation as described below, you can easily publish new versions.
+![preview](Docs~/screenshot/asset-preview.png)
 
-## 🤖 Setting up the Automation
+![preview2](Docs~/screenshot/asset-preview-2.png)
 
-Create a repository variable with the name and value described below.
-For details on how to create repository variables, see [Creating Configuration Variables for a Repository](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-a-repository).
-Make sure you are creating a **repository variable**, and not a **repository secret**.
+## 体験用ワールド
 
-* `PACKAGE_NAME`: the name of your package, like `com.vrchat.demo-template`.
+- UdonChips 対応版
+  - <https://vrchat.com/home/launch?worldId=wrld_297a95c7-da3f-444f-93bf-f0b5e2fee692>
+- UdonChips 非対応版
+  - <https://vrchat.com/home/launch?worldId=wrld_1cfea318-1c43-4093-a077-38ca6bcf8491>
 
-Finally, go to the "Settings" page for your repo, then choose "Pages", and look for the heading "Build and deployment". Change the "Source" dropdown from "Deploy from a branch" to "GitHub Actions".
+## 遊び方
 
-That's it!
-Some other notes:
-* We highly recommend you keep the existing folder structure of this template.
-  * The root of the project should be a Unity project.
-  * Your packages should be in the "Packages" directory.
-  * If you deviate from this folder structure, you'll need to update the paths that assume your package is in the "Packages" directory on lines 24, 38, 41 and 57.
-* If you want to store and generate your web files in a folder other than "Website" in the root, you can change the `listPublicDirectory` item [here in build-listing.yml](.github/workflows/build-listing.yml#L17).
+- 交互にサイコロを振り、3 列のうち空いている列にサイコロを配置する
+- 以下のルールに従いサイコロを取り除く
+- どちらかがサイコロを置けなくなった時点でゲーム終了となり、得点の高いほうが勝利
 
-## 🎉 Publishing a Release
+![manual3](/Packages/me.wipeseals.udon-knucklebones/Runtime/Textures/Manual/UdonKnucklebones-Manual-3.png)
 
-You can make a release by running the [Build Release](.github/workflows/release.yml) action. The version specified in your `package.json` file will be used to define the version of the release.
+## 導入
 
-## 📃 Rebuilding the Listing
+### 1. 前準備
 
-Whenever you make a change to a release - manually publishing it, or manually creating, editing or deleting a release, the [Build Repo Listing](.github/workflows/build-listing.yml) action will make a new index of all the releases available, and publish them as a website hosted fore free on [GitHub Pages](https://pages.github.com/). This listing can be used by the VPM to keep your package up to date, and the generated index page can serve as a simple landing page with info for your package. The URL for your package will be in the format `https://username.github.io/repo-name`.
+以下 URL より、VCC に UdonKnucklebones を追加する。
 
-## 🏠 Customizing the Landing Page (Optional)
+<https://wipeseals.github.io/UdonKnucklebones/>
 
-The action which rebuilds the listing also publishes a landing page. The source for this page is in `Website/index.html`. The automation system uses [Scriban](https://github.com/scriban/scriban) to fill in the objects like `{{ this }}` with information from the latest release's manifest, so it will stay up-to-date with the name, id and description that you provide there. You are welcome to modify this page however you want - just use the existing `{{ template.objects }}` to fill in that info wherever you like. The entire contents of your "Website" folder are published to your GitHub Page each time.
+自分のワールドプロジェクトに VCC から UdonKnucklebones を追加。(Version はその時時の最新を推奨)
+![vcc](Docs~/screenshot/add-vcc.png)
 
-## 💻 Technical Stuff
+### 2.A. Prefab 追加 (UdonChips 非対応版)
 
-You are welcome to make your own changes to the automation process to make it fit your needs, and you can create Pull Requests if you have some changes you think we should adopt. Here's some more info on the included automation:
+`Packages/Udon Knucklebones/Runtime/Prefabs` に UdonKnucklebones の Prefab があるので、これをシーン中に追加する。
+![prefab](Docs~/screenshot/prefab-locate.png)
 
-### Build Release Action
-[release.yml](/.github/workflows/release.yml)
+![add scene](Docs~/screenshot/add-scene.png)
 
-This is a composite action combining a variety of existing GitHub Actions and some shell commands to create both a .zip of your Package and a .unitypackage. It creates a release which is named for the `version` in the `package.json` file found in your target Package, and publishes the zip, the unitypackage and the package.json file to this release.
+### 2.B. Prefab 追加 (UdonChips 対応版)
 
-### Build Repo Listing
-[build-listing.yml](.github/workflows/build-listing.yml)
+UdonChips 対応が不要な場合は Skip
 
-This is a composite action which builds a vpm-compatible [Repo Listing](https://vcc.docs.vrchat.com/vpm/repos) based on the releases you've created. In order to find all your releases and combine them into a listing, it checks out [another repository](https://github.com/vrchat-community/package-list-action) which has a [Nuke](https://nuke.build/) project which includes the VPM core lib to have access to its types and methods. This project will be expanded to include more functionality in the future - for now, the action just calls its `BuildRepoListing` target.
+#### 注意
+
+2.B. は事前に UdonChips の導入を済ませ、Scene 中に UdonChips の Object がある前提の手順となる
+UdonChips 未導入の場合は **実施してはいけない。** 実施してしまった場合、 `Assets/UdonKnucklebonesSupportUdonChips` の手動削除で対処可能。
+
+#### 手順
+
+`Packages/Udon Knucklebones/Runtime/UnityPackages` に UdonKnucklebones(UdonChips) 導入用の UnityPackage があるので、これをダブルクリックして導入。
+
+![package](Docs~/screenshot/uc-unitypackage-locate.png)
+
+以下ファイルが `Assets/UdonKnucklebonesSupportUdonChips` に追加されるので Import を押す。
+
+![import](Docs~/screenshot/uc-unitypackage-import.png)
+
+`Assets/UdonKnucklebonesSupportUdonChips/Prefabs` に UdonChips 対応版の UdonKnucklebones の Prefab があるので、これを Scene に追加。
+
+![prefab](Docs~/screenshot/uc-prefab-locate.png)
+
+![add scene](Docs~/screenshot/uc-add-scene.png)
+
+### 3. 設定
+
+Prefab を配置するだけで動作するので特別設定作業はないが、以下の設定が可能。
+
+| 設定名                  | 内容                                                                                                                                |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Is Debug                | true の場合、Debug.Log で動作状況が出力されます                                                                                     |
+| Udon Chips Player Rate  | UdonChips 対応版の Player 戦で、勝敗の点差に応じて移動する UdonChips のレート (例えば、100 に設定している場合、1 点差=100UdonChips) |
+| Udon Chips Cpu Rate     | 上記レートの CPU 戦版                                                                                                               |
+| Think Time For Cpu      | CPU の思考時間平均。キビキビ動作させたい場合は減らす                                                                                |
+| Polling Sec For Rolling | サイコロを転がす際の監視間隔。通常は変更不要                                                                                        |
+| Is Column Index Crossed | Player1 の列と Player2 の列の番号が交差している場合は true。通常は変更不要                                                          |
+| Dice Roll Force Range   | サイコロを振るときの強さ最大値                                                                                                      |
+| Dice Roll Timeout Sec   | サイコロの目を決定するときのタイムアウト                                                                                            |
+| Dice Value For XXXX     | サイコロの面と目の同期用。通常は変更不要                                                                                            |
+
+![config](Docs~/screenshot/config-need.png)
+
+## トラブルシューティング他
+
+### 動作確認を行いたい
+
+Unity PlayMode でのデバッグ、及びワールド中でのデバッグが可能。
+何かしらの問題が発生しておりアセットの不具合が疑われる場合は、クリーンな環境（アセット中の Script を手動で書き換えたりなどしていない状況）で同梱のサンプルシーンが正常動作することをご確認願います。
+
+UdonChips 非対応サンプル
+
+![config](Docs~/screenshot/sample.png)
+
+UdonChips 対応サンプル
+
+![config](Docs~/screenshot/uc-sample.png)
+
+内容は体験用ワールドそのものになります。
+
+![config](Docs~/screenshot/sample-scene.png)
+
+### コンパイルエラーになる
+
+エラーの内容確認をお願いします。
+![trouble](Docs~/screenshot/error-compile.png)
+
+もし UdonChips 対応不要なのに誤って導入してしまった場合、導入したが UdonChips が準備できていない場合、以下のような表示になります。
+
+UdonChips の導入、もしくは UdonChips 対応版 UdonKnucklebones の削除対応が必要です。
+
+![trouble](Docs~/screenshot/error-uc-not-import.png)
+
+### UdonChips が正常に動作しない
+
+UdonChips 対応版を使用していることを確認願います。
+UdonChips 自体はプロジェクト中にあるが、シーン中にない場合はコンソール中に以下のエラー表示があります。
+
+![trouble](Docs~/screenshot/error-udonchips-not-found.png)
+
+### 音源の差し替え・音量調節を行いたい
+
+Dice Roll Audio Clip/Source, Dice Put Audio Clip/Source からサイコロを振った時・置いたときの音関連の挙動が変更できます。
+
+![trouble](Docs~/screenshot/config2.png)
+
+### UdonChips の掛け金を変更したい
+
+Udon Chips Player Rate/Udon Chips Cpu Rate から変更可能です。
+
+## 設計情報
+
+- Manual 同期を用いており、各ターンの Player が Owner を持つ
+- Player vs CPU、CPU vs CPU の場合は最終操作者が Owner を持つ
+- 後から World に参加した Player 向けの同期処理も施しており、参加者自身の`OnPlayerJoined` で Owner 宛にデータの同期と UI 更新イベントの発生ンをリクエストする
+- UdonChips 対応版は、本家 Script を継承し asmdef を明示していない (`Assembly-CSharp*` に属する)スクリプトとして定義される
+- UdonChips 対応版はこの都合より `Assets/UdonKnucklebonesSupportUdonChips` に分ける必要があり、不要な環境でビルドエラーにならないように UnityPackage 同梱の形態を取っている
