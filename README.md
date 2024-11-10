@@ -10,7 +10,22 @@ VRChat で遊べる運と駆け引きのゲーム。
 - VCC (VRChat Creator Companion) 追加 & Prefab 追加で導入完了
 - Player/CPU 対戦可能
 - UdonChips あり版/なし版それぞれ対応
-- ゲーム説明用のボード・画像を同梱
+- サンプルシーン、ゲーム説明用のボード・画像を同梱
+
+本家は [Cult of the Lamb](https://store.steampowered.com/app/1313140/Cult_of_the_Lamb/?l=japanese) 作中に登場するゲームで、本作品はファンメイドとなる。
+
+## 外観
+
+![preview](Docs~/screenshot/asset-preview.png)
+
+![preview2](Docs~/screenshot/asset-preview-2.png)
+
+## 体験用ワールド
+
+- UdonChips 対応版
+  - <https://vrchat.com/home/launch?worldId=wrld_297a95c7-da3f-444f-93bf-f0b5e2fee692>
+- UdonChips 非対応版
+  - <https://vrchat.com/home/launch?worldId=wrld_1cfea318-1c43-4093-a077-38ca6bcf8491>
 
 ## 遊び方
 
@@ -25,9 +40,10 @@ VRChat で遊べる運と駆け引きのゲーム。
 ### 1. 前準備
 
 以下 URL より、VCC に UdonKnucklebones を追加する。
+
 <https://wipeseals.github.io/UdonKnucklebones/>
 
-自分のワールドプロジェクトに VCC から UdonKnucklebones を追加する。
+自分のワールドプロジェクトに VCC から UdonKnucklebones を追加。(Version はその時時の最新を推奨)
 ![vcc](Docs~/screenshot/add-vcc.png)
 
 ### 2.A. Prefab 追加 (UdonChips 非対応版)
@@ -39,15 +55,16 @@ VRChat で遊べる運と駆け引きのゲーム。
 
 ### 2.B. Prefab 追加 (UdonChips 対応版)
 
+UdonChips 対応が不要な場合は Skip
+
 #### 注意
 
-2.B. は事前に UdonChips の導入を済ませ、Scene 中に UdonChips の Object がある前提の手順です。
-
-UdonChips 未導入の場合は **実施しないように** お願いします。実施してしまった場合は `Assets/UdonKnucklebonesSupportUdonChips` の手動削除で対処可能です。
+2.B. は事前に UdonChips の導入を済ませ、Scene 中に UdonChips の Object がある前提の手順となる
+UdonChips 未導入の場合は **実施してはいけない。** 実施してしまった場合、 `Assets/UdonKnucklebonesSupportUdonChips` の手動削除で対処可能。
 
 #### 手順
 
-`Packages/Udon Knucklebones/Runtime/UnityPackages` に UdonKnucklebones(UdonChips) 導入用の UnityPackage があるので、これをダブルクリックして導入します。
+`Packages/Udon Knucklebones/Runtime/UnityPackages` に UdonKnucklebones(UdonChips) 導入用の UnityPackage があるので、これをダブルクリックして導入。
 
 ![package](Docs~/screenshot/uc-unitypackage-locate.png)
 
@@ -63,7 +80,7 @@ UdonChips 未導入の場合は **実施しないように** お願いします�
 
 ### セットアップ
 
-Prefab ポン置きで動作するので特別作業はないですが、以下の設定が可能です。
+Prefab を配置するだけで動作するので特別設定作業はないが、以下の設定が可能。
 
 | 設定名                  | 内容                                                                                                                                |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -79,13 +96,57 @@ Prefab ポン置きで動作するので特別作業はないですが、以下�
 
 ![config](Docs~/screenshot/config-need.png)
 
-### トラブルシューティング
+### トラブルシューティング他
+
+#### 動作確認を行いたい
+
+Unity PlayMode でのデバッグ、及びワールド中でのデバッグが可能。
+何かしらの問題が発生しておりアセットの不具合が疑われる場合は、クリーンな環境（アセット中の Script を手動で書き換えたりなどしていない状況）で同梱のサンプルシーンが正常動作することをご確認願います。
+
+UdonChips 非対応サンプル
+
+![config](Docs~/screenshot/sample.png)
+
+UdonChips 対応サンプル
+
+![config](Docs~/screenshot/uc-sample.png)
+
+内容は体験用ワールドそのものになります。
+
+![config](Docs~/screenshot/sample-scene.png)
 
 #### コンパイルエラーになる
 
 エラーの内容確認をお願いします。
 ![trouble](Docs~/screenshot/error-compile.png)
 
-もし UdonChips 対応不要なのに誤って導入してしまった場合、導入したが UdonChips が準備できていない場合は
+もし UdonChips 対応不要なのに誤って導入してしまった場合、導入したが UdonChips が準備できていない場合、以下のような表示になります。
+
+UdonChips の導入、もしくは UdonChips 対応版 UdonKnucklebones の削除対応が必要です。
 
 ![trouble](Docs~/screenshot/error-uc-not-import.png)
+
+#### UdonChips が正常に動作しない
+
+UdonChips 対応版を使用していることを確認願います。
+UdonChips 自体はプロジェクト中にあるが、シーン中にない場合はコンソール中に以下のエラー表示があります。
+
+![trouble](Docs~/screenshot/error-udonchips-not-found.png)
+
+#### 音源の差し替え・音量調節を行いたい
+
+Dice Roll Audio Clip/Source, Dice Put Audio Clip/Source からサイコロを振った時・置いたときの音関連の挙動が変更できます。
+
+![trouble](Docs~/screenshot/config2.png)
+
+#### UdonChips の掛け金を変更したい
+
+Udon Chips Player Rate/Udon Chips Cpu Rate から変更可能です。
+
+## 設計情報
+
+- Manual 同期を用いており、各ターンの Player が Owner を持つ
+- Player vs CPU、CPU vs CPU の場合は最終操作者が Owner を持つ
+- 後から World に参加した Player 向けの同期処理も施しており、参加者自身の`OnPlayerJoined` で Owner 宛にデータの同期と UI 更新イベントの発生ンをリクエストする
+- UdonChips 対応版は、本家 Script を継承し asmdef を明示していない (`Assembly-CSharp*` に属する)スクリプトとして定義される
+- UdonChips 対応版はこの都合より `Assets/UdonKnucklebonesSupportUdonChips` に分ける必要があり、不要な環境でビルドエラーにならないように UnityPackage 同梱の形態を取っている
