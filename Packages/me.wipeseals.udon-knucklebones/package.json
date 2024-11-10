@@ -1,7 +1,7 @@
 {
   "name": "me.wipeseals.udon-knucklebones",
   "displayName": "Udon Knucklebones",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "wipeseals",
     "email": "wipeseals@gmail.com",
@@ -10,7 +10,7 @@
   "unity": "2022.3",
   "description": "Knucklebones playground for Udon",
   "vpmDependencies": {
-    "com.vrchat.base": "3.7.1",
-    "com.vrchat.worlds": "3.7.1"
+    "com.vrchat.base": "^3.7.1",
+    "com.vrchat.worlds": "^3.7.1"
   }
 }
