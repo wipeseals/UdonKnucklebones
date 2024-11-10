@@ -78,7 +78,7 @@ UdonChips 未導入の場合は **実施してはいけない。** 実施して�
 
 ![add scene](Docs~/screenshot/uc-add-scene.png)
 
-### セットアップ
+### 3. 設定
 
 Prefab を配置するだけで動作するので特別設定作業はないが、以下の設定が可能。
 
@@ -96,9 +96,9 @@ Prefab を配置するだけで動作するので特別設定作業はないが�
 
 ![config](Docs~/screenshot/config-need.png)
 
-### トラブルシューティング他
+## トラブルシューティング他
 
-#### 動作確認を行いたい
+### 動作確認を行いたい
 
 Unity PlayMode でのデバッグ、及びワールド中でのデバッグが可能。
 何かしらの問題が発生しておりアセットの不具合が疑われる場合は、クリーンな環境（アセット中の Script を手動で書き換えたりなどしていない状況）で同梱のサンプルシーンが正常動作することをご確認願います。
@@ -115,7 +115,7 @@ UdonChips 対応サンプル
 
 ![config](Docs~/screenshot/sample-scene.png)
 
-#### コンパイルエラーになる
+### コンパイルエラーになる
 
 エラーの内容確認をお願いします。
 ![trouble](Docs~/screenshot/error-compile.png)
@@ -126,20 +126,20 @@ UdonChips の導入、もしくは UdonChips 対応版 UdonKnucklebones の削�
 
 ![trouble](Docs~/screenshot/error-uc-not-import.png)
 
-#### UdonChips が正常に動作しない
+### UdonChips が正常に動作しない
 
 UdonChips 対応版を使用していることを確認願います。
 UdonChips 自体はプロジェクト中にあるが、シーン中にない場合はコンソール中に以下のエラー表示があります。
 
 ![trouble](Docs~/screenshot/error-udonchips-not-found.png)
 
-#### 音源の差し替え・音量調節を行いたい
+### 音源の差し替え・音量調節を行いたい
 
 Dice Roll Audio Clip/Source, Dice Put Audio Clip/Source からサイコロを振った時・置いたときの音関連の挙動が変更できます。
 
 ![trouble](Docs~/screenshot/config2.png)
 
-#### UdonChips の掛け金を変更したい
+### UdonChips の掛け金を変更したい
 
 Udon Chips Player Rate/Udon Chips Cpu Rate から変更可能です。
 
