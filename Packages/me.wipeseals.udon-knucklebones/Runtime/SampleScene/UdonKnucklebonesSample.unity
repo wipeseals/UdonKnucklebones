@@ -6322,26 +6322,6 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 491123868745970465, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
-    - target: {fileID: 2012106181369119293, guid: e6114cd583e13464a8def55ce4f46ffd,
-        type: 3}
-      propertyPath: m_Layer
-      value: 13
-      objectReference: {fileID: 0}
-    - target: {fileID: 2023334853777676235, guid: e6114cd583e13464a8def55ce4f46ffd,
-        type: 3}
-      propertyPath: m_Volume
-      value: 0.8
-      objectReference: {fileID: 0}
-    - target: {fileID: 2488902340417797164, guid: e6114cd583e13464a8def55ce4f46ffd,
-        type: 3}
-      propertyPath: m_Layer
-      value: 13
-      objectReference: {fileID: 0}
-    - target: {fileID: 2593501593636500952, guid: e6114cd583e13464a8def55ce4f46ffd,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 2147483647
-      objectReference: {fileID: 0}
     - target: {fileID: 5321424876967249467, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -6392,25 +6372,15 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6359482601441988617, guid: e6114cd583e13464a8def55ce4f46ffd,
+    - target: {fileID: 7304912435050066497, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
-      propertyPath: Far
-      value: 40
-      objectReference: {fileID: 0}
-    - target: {fileID: 6359482601441988617, guid: e6114cd583e13464a8def55ce4f46ffd,
-        type: 3}
-      propertyPath: Gain
-      value: 10
-      objectReference: {fileID: 0}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: c50441b8c1de48c4fbb06a5d71682234, type: 2}
     - target: {fileID: 7669086266576803299, guid: e6114cd583e13464a8def55ce4f46ffd,
         type: 3}
       propertyPath: m_Name
       value: Room
-      objectReference: {fileID: 0}
-    - target: {fileID: 7984186188566736353, guid: e6114cd583e13464a8def55ce4f46ffd,
-        type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
